@@ -1,0 +1,145 @@
+#ifndef DEFS_H
+#define DEFS_H
+
+#include <stdint.h>
+#include <x86intrin.h>
+
+#define PURE __attribute__((pure))
+#define CONST __attribute__((const))
+#define INLINE __attribute__((always_inline)) inline
+
+#define SET_BIT(bb, n) (bb |= (1ULL << n))
+#define GET_BIT(bb, n) (bb & (1ULL << n))
+#define CLEAR_BIT(bb, n) (bb &= ~(1ULL << n))
+#define CLEAR_LEAST_SIGNIFICANT_BIT(bb) (bb &= (bb - 1))
+#define COUNT_BITS(bb) (_popcnt64(u64))
+#define PEXT(src, mask) (_pext_u64(src, mask))
+#define GET_LEAST_SIGNIFICANT_BIT_INDEX(bb) (_tzcnt_u64(bb))
+
+#define ROW_COL_TO_SQR(row, col) (row * 8 + col)
+#define MAX_GAME_SIZE 2048
+
+#define STARTING_POSITION_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+typedef uint64_t u64;
+typedef uint32_t u32; // aka uint from x86intrin.h
+typedef uint16_t u16;
+typedef uint8_t u8;
+
+enum squares{
+    A8, B8, C8, D8, E8, F8, G8, H8,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A1, B1, C1, D1, E1, F1, G1, H1, NO_SQR,
+};
+enum pieces {p, n, b, r, q, k, P, N, B, R, Q, K, NO_PIECE};
+enum color {WHITE, BLACK, BOTH};
+enum castling {wk = 1, wq = 2, bk = 4, bq = 8};
+enum load_fen_result {load_fen_success, load_fen_failure};
+
+enum move_type{
+    QUIET, DOUBLE_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP_CAPTURE, 
+    PROMOTION_N, PROMOTION_B, PROMOTION_R, PROMOTION_Q,
+    CAPTURE_PROMOTION_N, CAPTURE_PROMOTION_B, CAPTURE_PROMOTION_R, CAPTURE_PROMOTION_Q
+};
+
+typedef struct{
+    u64 pieces[12];
+    u64 occupied_squares_by[3];
+    u32 move_history[MAX_GAME_SIZE];
+    uint ply;
+    u8 enPassantSquare;
+    u8 castlePermission;
+    u8 fiftyMovesCounter;
+    u8 sideToMove;
+}S_Board;
+
+typedef struct{
+    u64 attacks[107647];
+    u64 pawn_attacks[2][64];
+    u64 bishop[64];
+    u64 queen[64];
+    u64 king[64];
+    u64 knight[64];
+    u64 rook[64];
+}S_Masks;
+
+typedef struct{
+    u32 moves[256];
+    uint count;
+}S_Moves;
+
+// board.c
+extern uint load_fen(S_Board * board, const char* const FEN);
+extern void reset(S_Board * board);
+extern void print_board(S_Board * board);
+extern void print_bitboard(u64 bitboard, int current_pos);
+extern void update_occupied_squares(S_Board* board); 
+
+extern const char* pieces_int_to_chr;
+extern const int piece_chr_to_int[];
+extern const char squares_int_to_chr[65][3];
+extern const int castling_permission_by_square[64];
+extern u64 SquareBB[64];
+
+// masks.c
+extern void init_masks();
+extern u64 get_blockers(uint index, uint relevant_bits, u64 mask);
+extern u64 mask_pawn_attacks(int square, int color);
+extern u64 mask_king_attacks(int square);
+extern u64 mask_knight_attacks(int square);
+extern u64 mask_rook_attacks(int square);
+extern u64 mask_rook_attacks_on_the_fly(int square, u64 blockers);
+extern u64 mask_bishop_attacks(int square);
+extern u64 mask_bishop_attacks_on_the_fly(int square, u64 blockers);
+extern u64 mask_queen_attacks(int square);
+
+// precalculated.c
+extern const uint BISHOP_PEXT_OFFSET[64];
+extern const uint ROOK_PEXT_OFFSET[64];
+extern const uint ROOK_RELEVANT_BITS_BY_SQUARE[64];
+extern const uint BISHOP_RELEVANT_BITS_BY_SQUARE[64];
+extern const uint CASTLING_CHANGE_ON_MOVE[64];
+
+// movegen.c
+#define GET_PIECE_FAILED_FLAG 15
+
+#define MOVE_MASK_PIECE (0b1111UL)
+#define MOVE_MASK_FROM_SQUARE (0b111111UL << 4UL)
+#define MOVE_MASK_TO_SQUARE (0b111111UL << 10UL)
+#define MOVE_MASK_PROMOTION_PIECE (0b1111UL << 16UL)
+#define MOVE_MASK_CAPTURE_PIECE (0b1111UL << 20UL)
+#define MOVE_MASK_FLAG (0b1111UL << 24UL)
+
+#define MOVE_GET_PIECE(move) (move & MOVE_MASK_PIECE)
+#define MOVE_GET_FROM_SQUARE(move) ((move & MOVE_MASK_FROM_SQUARE) >> 4)
+#define MOVE_GET_TO_SQUARE(move) ((move & MOVE_MASK_TO_SQUARE) >> 10)
+#define MOVE_GET_PROMOTION_PIECE(move) ((move & MOVE_MASK_PROMOTION_PIECE) >> 16)
+#define MOVE_GET_CAPTURE_PIECE(move) ((move & MOVE_MASK_CAPTURE_PIECE) >> 20)
+#define MOVE_GET_FLAG(move) ((move & MOVE_MASK_FLAG) >> 24)
+
+#define STATE_GET_EN_PASSANT_SQR(board_state) (board_state & 0b111111LU)
+#define STATE_GET_CASTLE_PERM(board_state) ((board_state & (0b1111LU << 6)) >> 6)
+#define STATE_GET_FIFTYMOVES(board_state) ((board_state & (0b111111LU << 10)) >> 10)
+
+extern void generateMoves(const S_Board* const board, S_Moves* Moves);
+extern PURE u8 is_king_attacked(const S_Board* const board);
+extern PURE u16 encode_state(const S_Board* const Board);
+extern PURE u32 enocde_move_u32(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
+extern void print_moves(S_Moves* Moves);
+extern void print_move(u32 move);
+
+// perft.c
+extern uint run_perft_suite(S_Board* Board);
+extern u64 run_perft(S_Board* Board, uint depth);
+extern void undo_move(S_Board* board, u16 previous_board_state);
+extern void make_move(S_Board* board, u32 move);
+
+// main.c
+extern S_Masks Masks;
+
+#endif
