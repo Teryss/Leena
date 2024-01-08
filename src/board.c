@@ -19,6 +19,18 @@ const char squares_int_to_chr[65][3] = {
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1", "NSQ"
 };
 
+// enum castling {wk = 1, wq = 2, bk = 4, bq = 8}, sum: 15;
+const uint CASTLING_CHANGE_ON_MOVE[64] = {
+    wq + wk + bk, 15, 15, 15, wq + wk, 15, 15, bq + wk + wq,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    bk + bq + wk, 15, 15, 15, bq + bk, 15, 15, bk + bq + wq,
+};
+
 static uint get_next_space_FEN(const char * FEN, uint current_index, uint lenght){
     uint index = current_index;
     for (; index < lenght; index++){
@@ -48,12 +60,12 @@ uint load_fen(S_Board* board, const char* const FEN){
     for (int i = 0; i < FEN_length; i++){
         piece = FEN[i];
         if (piece > 'a' && piece < 'z'){
-            SET_BIT(board->pieces[piece_chr_to_int[piece]], square);
+            SET_BIT(board->pieces[piece_chr_to_int[(int)piece]], square);
             SET_BIT(board->occupied_squares_by[BLACK], square);
             SET_BIT(board->occupied_squares_by[BOTH], square);
             square++;
         }else if (piece > 'A' && piece < 'Z'){
-            SET_BIT(board->pieces[piece_chr_to_int[piece]], square);
+            SET_BIT(board->pieces[piece_chr_to_int[(int)piece]], square);
             SET_BIT(board->occupied_squares_by[WHITE], square);
             SET_BIT(board->occupied_squares_by[BOTH], square);
             square++;
@@ -126,13 +138,13 @@ uint load_fen(S_Board* board, const char* const FEN){
             break;
         }
     }
-
+    hash_position(board);
     return load_fen_success;
 }
 
 void reset(S_Board* board){
     board->castlePermission = 0;
-    board->enPassantSquare = NO_SQR;
+    board->enPassantSquare = 0;
     board->sideToMove = 0;
     board->ply = 0;
     board->fiftyMovesCounter = 0;
@@ -177,6 +189,7 @@ void print_board(S_Board* board){
     }
     printf("\n    A  B  C  D  E  F  G  H\n\n");
     printf("Value: %lu\n\n", board->occupied_squares_by[BOTH]);
+    printf("Hash: %lx\n", board->hash);
     printf("En passant square: %s\n", board->enPassantSquare == NO_SQR ? "-" : squares_int_to_chr[board->enPassantSquare]);
     printf("Castling rights: %c%c%c%c\n", 
         board->castlePermission & wk ? 'K' : '-',

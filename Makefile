@@ -5,10 +5,6 @@ OMIT = -fomit-frame-pointer
 all:
 	$(CC) -o Leena $(OPTIONS) $(OMIT) *.c
 
-profile:
-	$(CC) -g -c *.c $(OPTIONS) -pg
-	$(CC) -o Leena *.o $(OPTIONS) -pg
-
 debug:
 	$(CC) -o Leena -march=native -g *.c
 	

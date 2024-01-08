@@ -12,7 +12,8 @@
 #define GET_BIT(bb, n) (bb & (1ULL << n))
 #define CLEAR_BIT(bb, n) (bb &= ~(1ULL << n))
 #define CLEAR_LEAST_SIGNIFICANT_BIT(bb) (bb &= (bb - 1))
-#define COUNT_BITS(bb) (_popcnt64(u64))
+#define MORE_THAN_ONE(bb) (bb & (bb - 1))
+#define COUNT_BITS(bb) (_popcnt64(bb))
 #define PEXT(src, mask) (_pext_u64(src, mask))
 #define GET_LEAST_SIGNIFICANT_BIT_INDEX(bb) (_tzcnt_u64(bb))
 
@@ -20,11 +21,15 @@
 #define MAX_GAME_SIZE 2048
 
 #define STARTING_POSITION_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define kiwipete "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
 typedef uint64_t u64;
 typedef uint32_t u32; // aka uint from x86intrin.h
+typedef uint32_t uint;
 typedef uint16_t u16;
 typedef uint8_t u8;
+typedef uint_fast8_t uint_loop;
+typedef int32_t i32;
 
 enum squares{
     A8, B8, C8, D8, E8, F8, G8, H8,
@@ -40,17 +45,21 @@ enum pieces {p, n, b, r, q, k, P, N, B, R, Q, K, NO_PIECE};
 enum color {WHITE, BLACK, BOTH};
 enum castling {wk = 1, wq = 2, bk = 4, bq = 8};
 enum load_fen_result {load_fen_success, load_fen_failure};
-
 enum move_type{
-    QUIET, DOUBLE_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP_CAPTURE, 
+    QUIET, DOUBLE_PUSH, KING_CASTLE, QUEEN_CASTLE,
     PROMOTION_N, PROMOTION_B, PROMOTION_R, PROMOTION_Q,
+    CAPTURE, EP_CAPTURE,
     CAPTURE_PROMOTION_N, CAPTURE_PROMOTION_B, CAPTURE_PROMOTION_R, CAPTURE_PROMOTION_Q
 };
+typedef enum __attribute__((__packed__)){
+    NODE_NONE, NODE_EXACT, NODE_UPPER, NODE_LOWER
+}Node;
 
 typedef struct{
     u64 pieces[12];
     u64 occupied_squares_by[3];
-    u32 move_history[MAX_GAME_SIZE];
+    u64 hash;
+    u32 killer_moves[2];
     uint ply;
     u8 enPassantSquare;
     u8 castlePermission;
@@ -73,6 +82,26 @@ typedef struct{
     uint count;
 }S_Moves;
 
+typedef struct{
+    u32 move;
+    i32 score;
+}S_Move;
+
+typedef struct{
+    u64 hash;
+    i32 score;
+    Node node_type;
+    u8 depth;
+}S_TT_Entry;
+
+typedef struct{
+    S_TT_Entry* entries;
+    int count;
+}S_TTable;
+
+// main.c
+extern S_Masks Masks;
+
 // board.c
 extern uint load_fen(S_Board * board, const char* const FEN);
 extern void reset(S_Board * board);
@@ -84,7 +113,6 @@ extern const char* pieces_int_to_chr;
 extern const int piece_chr_to_int[];
 extern const char squares_int_to_chr[65][3];
 extern const int castling_permission_by_square[64];
-extern u64 SquareBB[64];
 
 // masks.c
 extern void init_masks();
@@ -98,23 +126,24 @@ extern u64 mask_bishop_attacks(int square);
 extern u64 mask_bishop_attacks_on_the_fly(int square, u64 blockers);
 extern u64 mask_queen_attacks(int square);
 
-// precalculated.c
+// constants.c
+extern const int16_t PIECE_VALUE[6];
 extern const uint BISHOP_PEXT_OFFSET[64];
 extern const uint ROOK_PEXT_OFFSET[64];
 extern const uint ROOK_RELEVANT_BITS_BY_SQUARE[64];
 extern const uint BISHOP_RELEVANT_BITS_BY_SQUARE[64];
 extern const uint CASTLING_CHANGE_ON_MOVE[64];
+extern const uint MVV_LVA[12][12];
+extern const int16_t* PIECE_SQUARE_BONUS[6];
 
 // movegen.c
 #define GET_PIECE_FAILED_FLAG 15
-
 #define MOVE_MASK_PIECE (0b1111UL)
 #define MOVE_MASK_FROM_SQUARE (0b111111UL << 4UL)
 #define MOVE_MASK_TO_SQUARE (0b111111UL << 10UL)
 #define MOVE_MASK_PROMOTION_PIECE (0b1111UL << 16UL)
 #define MOVE_MASK_CAPTURE_PIECE (0b1111UL << 20UL)
 #define MOVE_MASK_FLAG (0b1111UL << 24UL)
-
 #define MOVE_GET_PIECE(move) (move & MOVE_MASK_PIECE)
 #define MOVE_GET_FROM_SQUARE(move) ((move & MOVE_MASK_FROM_SQUARE) >> 4)
 #define MOVE_GET_TO_SQUARE(move) ((move & MOVE_MASK_TO_SQUARE) >> 10)
@@ -122,24 +151,69 @@ extern const uint CASTLING_CHANGE_ON_MOVE[64];
 #define MOVE_GET_CAPTURE_PIECE(move) ((move & MOVE_MASK_CAPTURE_PIECE) >> 20)
 #define MOVE_GET_FLAG(move) ((move & MOVE_MASK_FLAG) >> 24)
 
-#define STATE_GET_EN_PASSANT_SQR(board_state) (board_state & 0b111111LU)
-#define STATE_GET_CASTLE_PERM(board_state) ((board_state & (0b1111LU << 6)) >> 6)
-#define STATE_GET_FIFTYMOVES(board_state) ((board_state & (0b111111LU << 10)) >> 10)
-
 extern void generateMoves(const S_Board* const board, S_Moves* Moves);
-extern PURE u8 is_king_attacked(const S_Board* const board);
-extern PURE u16 encode_state(const S_Board* const Board);
-extern PURE u32 enocde_move_u32(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
+extern void generateOnlyCaptures(const S_Board* const board, S_Moves* Moves);
+extern CONST u16 encode_state(const S_Board* const Board);
+extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
 extern void print_moves(S_Moves* Moves);
 extern void print_move(u32 move);
 
 // perft.c
-extern uint run_perft_suite(S_Board* Board);
-extern u64 run_perft(S_Board* Board, uint depth);
-extern void undo_move(S_Board* board, u16 previous_board_state);
+extern void perft_suite(S_Board* Board);
+extern u64 perft(S_Board* Board, uint depth);
 extern void make_move(S_Board* board, u32 move);
 
-// main.c
-extern S_Masks Masks;
+// search.c
+extern u64 total_nodes_searched;
+extern u64 hash_collision;
+extern S_Move search(S_Board* Board, uint depth);
+extern i32 evaluate(S_Board * Board);
+extern void clear_killer_moves();
+
+// eval.c
+extern u32 killer_moves[MAX_GAME_SIZE][2];
+extern const u8 MIRROR_SQUARE[64];
+extern i32 evaluate(S_Board * Board);
+extern void sort_moves(S_Board* Board, S_Moves* Moves);
+extern void sort_captures(S_Board* Board, S_Moves* Moves);
+
+// ttable.c
+extern S_TTable TTable;
+extern u64 TT_squares_hash[12][64];
+extern u64 TT_castling_rights_hash[16];
+extern u64 TT_enpassant_hash[8];
+extern u64 TT_side_to_move_hash;
+extern void init_TT();
+extern void hash_position(S_Board* Board);
+
+// uci.c
+
+
+INLINE PURE u64 get_rook_attacks(u64 occupancy, const uint square){
+    return Masks.attacks[PEXT(occupancy, Masks.rook[square]) + ROOK_PEXT_OFFSET[square]];
+}
+
+INLINE PURE u64 get_bishop_attacks(u64 occupancy, const uint square){
+    return Masks.attacks[PEXT(occupancy, Masks.bishop[square]) + BISHOP_PEXT_OFFSET[square]];
+}
+
+INLINE PURE u64 get_queen_attacks(u64 occupancy, const uint square){
+    return get_bishop_attacks(occupancy, square) | get_rook_attacks(occupancy, square);
+}
+
+/*
+It's used during search/perft, when sideToMove has already been changed
+During move generation we use is_square_attacked and specify king's location
+*/
+inline PURE u8 is_king_attacked(const S_Board* const board){
+    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
+    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove])) return 1;
+    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[B - 6 * board->sideToMove]) return 1; 
+    if (get_queen_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[Q - 6 * board->sideToMove]) return 1;
+    if (Masks.pawn_attacks[board->sideToMove^1][square]  & board->pieces[P - 6 * board->sideToMove]) return 1;
+    if (Masks.knight[square] & board->pieces[N - 6 * board->sideToMove]) return 1;
+    if (Masks.king[square] & board->pieces[K - 6 * board->sideToMove]) return 1;
+    return 0;
+}
 
 #endif
