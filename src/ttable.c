@@ -2,6 +2,8 @@
 #include <string.h>
 
 /*
+Source: https://www.chessprogramming.org/Zobrist_Hashing
+
 If we now want to get the Zobrist hash code of a certain position, we initialize the hash key by xoring all random numbers linked to the given feature, e.g. the initial position:
 
 [Hash for White Rook on a1] xor [Hash for White Knight on b1] xor [Hash for White Bishop on c1] xor ... ( all pieces )

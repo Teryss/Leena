@@ -63,10 +63,11 @@ u64 perft(S_Board* Board, uint depth){
 
         if (current_nodes != 0)
             printf("%s%s%c: %lu\n", 
-                    squares_int_to_chr[MOVE_GET_FROM_SQUARE(Moves.moves[i])],
+                squares_int_to_chr[MOVE_GET_FROM_SQUARE(Moves.moves[i])],
                 squares_int_to_chr[MOVE_GET_TO_SQUARE(Moves.moves[i])],
                 (MOVE_GET_PROMOTION_PIECE(Moves.moves[i]) != NO_PIECE ? pieces_int_to_chr[MOVE_GET_PROMOTION_PIECE(Moves.moves[i])] : ' '),
-                current_nodes);
+                current_nodes
+            );
 
         memcpy(Board, &Board_copy, sizeof(S_Board));
         nodes += current_nodes;

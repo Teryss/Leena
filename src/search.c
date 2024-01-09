@@ -75,7 +75,7 @@ S_Move search(S_Board* Board, uint depth){
     sort_moves(Board, &Moves);
     memcpy(&Board_copy, Board, sizeof(S_Board));
 
-    for (uint_loop i = 0; i < Moves.count; i++){
+    for (int i = 0; i < Moves.count; i++){
         make_move(Board, Moves.moves[i]);
         if ((is_king_attacked(Board)) == 0){
             total_nodes_searched++;
@@ -114,7 +114,7 @@ i32 alpha_beta(S_Board* Board, i32 alpha, i32 beta, i32 depth){
     sort_moves(Board, &Moves);
     memcpy(&Board_copy, Board, sizeof(S_Board));
 
-    for (uint_loop i = 0; i < Moves.count; i++){
+    for (int i = 0; i < Moves.count; i++){
         make_move(Board, Moves.moves[i]);
         if ((is_king_attacked(Board)) == 0){
             total_nodes_searched++;
@@ -164,7 +164,7 @@ i32 quiesence_search(S_Board* Board, i32 alpha, i32 beta, i32 depth){
     sort_captures(Board, &Moves);
     memcpy(&Board_copy, Board, sizeof(S_Board));
 
-    for (uint_loop i = 0; i < Moves.count; i++){
+    for (int i = 0; i < Moves.count; i++){
         make_move(Board, Moves.moves[i]);
         if ((is_king_attacked(Board)) == 0){
             total_nodes_searched++;

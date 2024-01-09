@@ -25,10 +25,9 @@
 
 typedef uint64_t u64;
 typedef uint32_t u32; // aka uint from x86intrin.h
-typedef uint32_t uint;
+typedef unsigned int uint;
 typedef uint16_t u16;
 typedef uint8_t u8;
-typedef uint_fast8_t uint_loop;
 typedef int32_t i32;
 
 enum squares{
@@ -187,17 +186,17 @@ extern void init_TT();
 extern void hash_position(S_Board* Board);
 
 // uci.c
+void uci_loop();
 
-
-INLINE PURE u64 get_rook_attacks(u64 occupancy, const uint square){
+INLINE u64 get_rook_attacks(u64 occupancy, const uint square){
     return Masks.attacks[PEXT(occupancy, Masks.rook[square]) + ROOK_PEXT_OFFSET[square]];
 }
 
-INLINE PURE u64 get_bishop_attacks(u64 occupancy, const uint square){
+INLINE u64 get_bishop_attacks(u64 occupancy, const uint square){
     return Masks.attacks[PEXT(occupancy, Masks.bishop[square]) + BISHOP_PEXT_OFFSET[square]];
 }
 
-INLINE PURE u64 get_queen_attacks(u64 occupancy, const uint square){
+INLINE u64 get_queen_attacks(u64 occupancy, const uint square){
     return get_bishop_attacks(occupancy, square) | get_rook_attacks(occupancy, square);
 }
 
@@ -205,7 +204,7 @@ INLINE PURE u64 get_queen_attacks(u64 occupancy, const uint square){
 It's used during search/perft, when sideToMove has already been changed
 During move generation we use is_square_attacked and specify king's location
 */
-inline PURE u8 is_king_attacked(const S_Board* const board){
+inline u8 is_king_attacked(const S_Board* const board){
     const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
     if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove])) return 1;
     if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[B - 6 * board->sideToMove]) return 1; 

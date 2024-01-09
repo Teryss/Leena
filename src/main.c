@@ -4,9 +4,6 @@
 
 S_Masks Masks;
 
-#define POSITION_TO_LOAD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define DEPTH 6
-
 void init_all();
 void time_perft(S_Board* Board, const char* FEN, int depth);
 void time_search(S_Board* Board, const char* FEN, int depth);
@@ -14,15 +11,10 @@ void time_search(S_Board* Board, const char* FEN, int depth);
 int main(){
     S_Board Board;
     init_all();
-
     load_fen(&Board, kiwipete);
-    // print_board(&Board);
+    print_board(&Board);
 
-    // printf("Evaluation: %i\n", evaluate(&Board));
-    time_search(&Board, kiwipete, 8);
-    // perft_suite(&Board);
-    // time_perft(&Board, STARTING_POSITION_FEN, 7);
-    // time_perft(&Board, kiwipete, 6);
+    // time_search(&Board, kiwipete, 8);
 
     free(TTable.entries);
 }

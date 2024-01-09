@@ -1,13 +1,16 @@
 #include "defs.h"
 #include <stdio.h>
 
-const char* commands[] = {
+#define READ_INPUT scanf("%[^\n]", command)
+
+static const char* commands[] = {
     "uci",
 };
+static char command[128];
 
-void parse_position_command(){}
-void parse_go_command(){}
+static void parse_position_command(){}
+static void parse_go_command(){}
 
 void uci_loop(){
-
+    READ_INPUT;
 }

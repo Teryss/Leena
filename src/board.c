@@ -188,9 +188,9 @@ void print_board(S_Board* board){
         printf("\n");
     }
     printf("\n    A  B  C  D  E  F  G  H\n\n");
-    printf("Value: %lu\n\n", board->occupied_squares_by[BOTH]);
+    printf("Value: %lu\n", board->occupied_squares_by[BOTH]);
     printf("Hash: %lx\n", board->hash);
-    printf("En passant square: %s\n", board->enPassantSquare == NO_SQR ? "-" : squares_int_to_chr[board->enPassantSquare]);
+    printf("En passant square: %s\n", board->enPassantSquare == 0 ? "-" : squares_int_to_chr[board->enPassantSquare]);
     printf("Castling rights: %c%c%c%c\n", 
         board->castlePermission & wk ? 'K' : '-',
         board->castlePermission & wq ? 'Q' : '-',

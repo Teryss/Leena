@@ -118,7 +118,7 @@ i32 evaluate(S_Board * Board){
     const int8_t side_multiplier = Board->sideToMove == BLACK ? -1 : 1;
     u8 square;
 
-    for (uint_loop piece = 0; piece < 6; piece++){
+    for (int piece = 0; piece < 6; piece++){
         bb = Board->pieces[piece];
         while (bb) {
             square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
@@ -127,7 +127,7 @@ i32 evaluate(S_Board * Board){
             eval -= PIECE_SQUARE_BONUS[piece][mirror_square[square]];
         }
     }
-    for (uint_loop piece = 6; piece < 12; piece++){
+    for (int piece = 6; piece < 12; piece++){
         bb = Board->pieces[piece];
         while (bb) {
             square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
@@ -144,7 +144,7 @@ void sort_moves(S_Board* Board, S_Moves* Moves){
     u64 temp_move;
     uint scores[256];
     uint temp_score;
-    for (uint_loop i = 0; i < Moves->count; i++){
+    for (int i = 0; i < Moves->count; i++){
         if (MOVE_GET_FLAG(Moves->moves[i]) >= CAPTURE){
             scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])] + CAPTURE_BONUS;
         }else{
@@ -158,10 +158,10 @@ void sort_moves(S_Board* Board, S_Moves* Moves){
         }
     }
     
-    for (uint_loop i = 0; i < Moves->count; i++){
+    for (int i = 0; i < Moves->count; i++){
         if (scores[i] == 0)
             continue;
-        for (uint_loop j = 0; j < Moves->count; j++){
+        for (int j = 0; j < Moves->count; j++){
             if (scores[i] > scores[j]){
                 temp_move = Moves->moves[j];
                 Moves->moves[j] = Moves->moves[i];
@@ -180,11 +180,11 @@ void sort_captures(S_Board* Board, S_Moves* Moves){
     uint scores[256];
     uint temp_score;
 
-    for (uint_loop i = 0; i < Moves->count; i++){
+    for (int i = 0; i < Moves->count; i++){
         scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])];
     }
-    for (uint_loop i = 0; i < Moves->count; i++){
-        for (uint_loop j = 0; j < Moves->count; j++){
+    for (int i = 0; i < Moves->count; i++){
+        for (int j = 0; j < Moves->count; j++){
             if (scores[i] > scores[j]){
                 temp_move = Moves->moves[j];
                 Moves->moves[j] = Moves->moves[i];
