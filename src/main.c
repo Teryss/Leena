@@ -10,9 +10,14 @@ void time_search(S_Board* Board, const char* FEN, int depth);
 
 int main(){
     S_Board Board;
-    init_all();
-    load_fen(&Board, kiwipete);
-    print_board(&Board);
+    // init_all();
+    // load_fen(&Board, STARTING_POSITION_FEN);
+    // print_board(&Board);
+
+    uci_loop();
+    // print_bitboard(Board.pieces[P], NO_SQR);
+    // print_bitboard(Board.pieces[p], NO_SQR);
+    // print_bitboard(Board.pieces[p] | Board.pieces[P], NO_SQR);
 
     // time_search(&Board, kiwipete, 8);
 

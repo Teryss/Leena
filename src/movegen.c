@@ -46,6 +46,21 @@ static inline PURE u8 is_square_attacked(const S_Board* const board, const uint 
     return 0;
 }
 
+/*
+It's used during search/perft, when sideToMove has already been changed
+During move generation we use is_square_attacked and specify king's location
+*/
+PURE u8 is_king_attacked(const S_Board* const board){
+    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
+    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove])) return 1;
+    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[B - 6 * board->sideToMove]) return 1; 
+    if (get_queen_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[Q - 6 * board->sideToMove]) return 1;
+    if (Masks.pawn_attacks[board->sideToMove^1][square]  & board->pieces[P - 6 * board->sideToMove]) return 1;
+    if (Masks.knight[square] & board->pieces[N - 6 * board->sideToMove]) return 1;
+    if (Masks.king[square] & board->pieces[K - 6 * board->sideToMove]) return 1;
+    return 0;
+}
+
 void generateOnlyCaptures(const S_Board* const board, S_Moves* Moves){
     const uint side_to_move = board->sideToMove;
     const uint pieces_offset = side_to_move == WHITE ? 6 : 0;

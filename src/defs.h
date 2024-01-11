@@ -24,7 +24,7 @@
 #define kiwipete "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
 typedef uint64_t u64;
-typedef uint32_t u32; // aka uint from x86intrin.h
+typedef uint32_t u32;
 typedef unsigned int uint;
 typedef uint16_t u16;
 typedef uint8_t u8;
@@ -100,6 +100,7 @@ typedef struct{
 
 // main.c
 extern S_Masks Masks;
+void init_all();
 
 // board.c
 extern uint load_fen(S_Board * board, const char* const FEN);
@@ -156,6 +157,7 @@ extern CONST u16 encode_state(const S_Board* const Board);
 extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
 extern void print_moves(S_Moves* Moves);
 extern void print_move(u32 move);
+extern PURE u8 is_king_attacked(const S_Board* const board);
 
 // perft.c
 extern void perft_suite(S_Board* Board);
@@ -164,15 +166,12 @@ extern void make_move(S_Board* board, u32 move);
 
 // search.c
 extern u64 total_nodes_searched;
-extern u64 hash_collision;
 extern S_Move search(S_Board* Board, uint depth);
-extern i32 evaluate(S_Board * Board);
-extern void clear_killer_moves();
 
 // eval.c
 extern u32 killer_moves[MAX_GAME_SIZE][2];
-extern const u8 MIRROR_SQUARE[64];
 extern i32 evaluate(S_Board * Board);
+extern void clear_killer_moves();
 extern void sort_moves(S_Board* Board, S_Moves* Moves);
 extern void sort_captures(S_Board* Board, S_Moves* Moves);
 
@@ -198,21 +197,6 @@ INLINE u64 get_bishop_attacks(u64 occupancy, const uint square){
 
 INLINE u64 get_queen_attacks(u64 occupancy, const uint square){
     return get_bishop_attacks(occupancy, square) | get_rook_attacks(occupancy, square);
-}
-
-/*
-It's used during search/perft, when sideToMove has already been changed
-During move generation we use is_square_attacked and specify king's location
-*/
-inline u8 is_king_attacked(const S_Board* const board){
-    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
-    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove])) return 1;
-    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[B - 6 * board->sideToMove]) return 1; 
-    if (get_queen_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[Q - 6 * board->sideToMove]) return 1;
-    if (Masks.pawn_attacks[board->sideToMove^1][square]  & board->pieces[P - 6 * board->sideToMove]) return 1;
-    if (Masks.knight[square] & board->pieces[N - 6 * board->sideToMove]) return 1;
-    if (Masks.king[square] & board->pieces[K - 6 * board->sideToMove]) return 1;
-    return 0;
 }
 
 #endif
