@@ -58,8 +58,8 @@ typedef struct{
     u64 pieces[12];
     u64 occupied_squares_by[3];
     u64 hash;
-    u32 killer_moves[2];
     uint ply;
+    u8 piece_set[64];
     u8 enPassantSquare;
     u8 castlePermission;
     u8 fiftyMovesCounter;
@@ -70,7 +70,6 @@ typedef struct{
     u64 attacks[107647];
     u64 pawn_attacks[2][64];
     u64 bishop[64];
-    u64 queen[64];
     u64 king[64];
     u64 knight[64];
     u64 rook[64];
@@ -101,6 +100,14 @@ typedef struct{
 // main.c
 extern S_Masks Masks;
 void init_all();
+
+// bitboards.c
+extern u64 sqrs[64];
+extern u64 between[64][64];
+extern u64 line[64][64];
+extern u64 ranks[8];
+extern u64 files[8];
+extern void init_bb();
 
 // board.c
 extern uint load_fen(S_Board * board, const char* const FEN);
@@ -158,6 +165,7 @@ extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotio
 extern void print_moves(S_Moves* Moves);
 extern void print_move(u32 move);
 extern PURE u8 is_king_attacked(const S_Board* const board);
+extern void filter_illegal(const S_Board* const board, S_Moves* Moves);
 
 // perft.c
 extern void perft_suite(S_Board* Board);
@@ -183,6 +191,8 @@ extern u64 TT_enpassant_hash[8];
 extern u64 TT_side_to_move_hash;
 extern void init_TT();
 extern void hash_position(S_Board* Board);
+
+extern u64 pins(const S_Board* const board, u8 king_square, u8 offset);
 
 // uci.c
 void uci_loop();

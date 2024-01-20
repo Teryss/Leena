@@ -97,11 +97,11 @@ void init_masks(){
     for (int sqr = 0; sqr < 64; sqr++){
         Masks.pawn_attacks[WHITE][sqr] = mask_pawn_attacks(sqr, WHITE);
         Masks.pawn_attacks[BLACK][sqr] = mask_pawn_attacks(sqr, BLACK);
+        
         Masks.king[sqr] = mask_king_attacks(sqr);
         Masks.knight[sqr] = mask_knight_attacks(sqr);
         Masks.bishop[sqr] = mask_bishop_attacks(sqr);
         Masks.rook[sqr] = mask_rook_attacks(sqr);
-        Masks.queen[sqr] = mask_queen_attacks(sqr);
     }
 
     u64 blocker;

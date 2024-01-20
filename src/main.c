@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 #include "defs.h"
@@ -10,22 +11,47 @@ void time_search(S_Board* Board, const char* FEN, int depth);
 
 int main(){
     S_Board Board;
-    // init_all();
-    // load_fen(&Board, STARTING_POSITION_FEN);
-    // print_board(&Board);
+    init_all();
+    // load_fen(&Board, "k2r4/8/7q/b7/5B2/8/3K4/8 w - - 0 1");
+    load_fen(&Board, "k7/8/8/8/4B3/8/2rK4/8 w - - 0 1");
 
-    uci_loop();
+    // print_board(&Board);
+    // S_Moves Moves;
+    // generateMoves(&Board, &Moves);
+    // // print_moves(&Moves);
+    // filter_illegal(&Board, &Moves);
+    // // printf("##########################\nMoves count: %i\n", Moves.count);
+    // print_moves(&Moves);
+    // // u64 pinned = pins(&Board, D2, 0);
+    // print_bitboard(pinned, NO_SQR);
+
+    // for (int i = 0; i < Moves.count; i++){
+    //     if (sqrs[MOVE_GET_FROM_SQUARE(Moves.moves[i])] & pinned){
+    //         if (!(sqrs[MOVE_GET_TO_SQUARE(Moves.moves[i])] & line[D2][MOVE_GET_FROM_SQUARE(Moves.moves[i])]))
+    //             continue;
+    //     }
+    //     print_move(Moves.moves[i]);
+    // }
+
+    // print_board(&Board);
+    // time_perft(&Board, kiwipete, 6);
+    // init_bb();
+    perft_suite(&Board);
+    // uci_loop();
+
+    // time_search(&Board, kiwipete, 4);
     // print_bitboard(Board.pieces[P], NO_SQR);
     // print_bitboard(Board.pieces[p], NO_SQR);
     // print_bitboard(Board.pieces[p] | Board.pieces[P], NO_SQR);
 
     // time_search(&Board, kiwipete, 8);
 
-    free(TTable.entries);
+    // free(TTable.entries);
 }
 
 void init_all(){
     init_masks();
+    init_bb();
     init_TT();
     clear_killer_moves();
 }

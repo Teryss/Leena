@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include "defs.h"
 
@@ -25,7 +26,7 @@ INLINE CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotio
     );    
 }
 
-static inline PURE uint get_target_piece(const S_Board* const board, uint square){
+static inline uint get_target_piece(const S_Board* const board, uint square){
     for (int piece = (6 * board->sideToMove); piece < 6 + (6 * board->sideToMove); piece++){
         if (GET_BIT(board->pieces[piece], square)){
             return piece;
@@ -34,31 +35,109 @@ static inline PURE uint get_target_piece(const S_Board* const board, uint square
     return GET_PIECE_FAILED_FLAG;
 }
 
-/*
-It's used to checked if a king is in check during move generation
-*/
-static inline PURE u8 is_square_attacked(const S_Board* const board, const uint square){
-    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[r + 6 * board->sideToMove]) return 1;
-    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[b + 6 * board->sideToMove]) return 1; 
-    if (get_queen_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[q + 6 * board->sideToMove]) return 1;
-    if (Masks.knight[square] & board->pieces[n + 6 * board->sideToMove]) return 1;
-    if (Masks.pawn_attacks[board->sideToMove][square]  & board->pieces[p + 6 * board->sideToMove]) return 1;
-    return 0;
+static INLINE u64 square_attackers(const S_Board* const board, const uint square){
+    return (u64)(
+        (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[r + 6 * board->sideToMove] | board->pieces[q + 6 * board->sideToMove])) |
+        (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[b + 6 * board->sideToMove] | board->pieces[q + 6 * board->sideToMove])) |
+        (Masks.knight[square] & board->pieces[n + 6 * board->sideToMove]) |
+        (Masks.pawn_attacks[board->sideToMove][square]  & board->pieces[p + 6 * board->sideToMove])
+    );
+}
+
+static INLINE u64 is_square_attacked_custom(const S_Board* board, const u64 occ, const uint square){
+    return (u64)(
+        (get_rook_attacks(occ, square) & (board->pieces[r + 6 * board->sideToMove] | board->pieces[q + 6 * board->sideToMove])) |
+        (get_bishop_attacks(occ, square) & (board->pieces[b + 6 * board->sideToMove] | board->pieces[q + 6 * board->sideToMove])) |
+        (Masks.knight[square] & board->pieces[n + 6 * board->sideToMove]) |
+        (Masks.pawn_attacks[board->sideToMove][square]  & board->pieces[p + 6 * board->sideToMove])
+    );
 }
 
 /*
 It's used during search/perft, when sideToMove has already been changed
 During move generation we use is_square_attacked and specify king's location
 */
-PURE u8 is_king_attacked(const S_Board* const board){
+u8 is_king_attacked(const S_Board* const board){
     const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
-    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove])) return 1;
-    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[B - 6 * board->sideToMove]) return 1; 
-    if (get_queen_attacks(board->occupied_squares_by[BOTH], square) & board->pieces[Q - 6 * board->sideToMove]) return 1;
+    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove] | board->pieces[Q - 6 * board->sideToMove])) return 1;
+    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[B - 6 * board->sideToMove] | board->pieces[Q - 6 * board->sideToMove])) return 1; 
     if (Masks.pawn_attacks[board->sideToMove^1][square]  & board->pieces[P - 6 * board->sideToMove]) return 1;
     if (Masks.knight[square] & board->pieces[N - 6 * board->sideToMove]) return 1;
     if (Masks.king[square] & board->pieces[K - 6 * board->sideToMove]) return 1;
     return 0;
+}
+
+u64 pins(const S_Board* const board, u8 king_square, u8 offset){
+    u64 xRayAttackers = (board->pieces[r + offset] | board->pieces[q + offset]) & get_rook_attacks(0, king_square) |
+                            (board->pieces[b + offset] | board->pieces[q + offset]) & get_bishop_attacks(0, king_square);
+    u64 pins, possible_pins;
+    u8 attacker_square;
+
+    while (xRayAttackers) {
+        attacker_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(xRayAttackers);
+        CLEAR_LEAST_SIGNIFICANT_BIT(xRayAttackers);
+        
+        possible_pins = between[king_square][attacker_square] & board->occupied_squares_by[board->sideToMove];
+        if (possible_pins && !(MORE_THAN_ONE(possible_pins))){
+            pins |= possible_pins;
+        }
+    }
+    return pins;
+}
+
+static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
+    switch (pieceType) {
+        case b:
+            return get_bishop_attacks(occupancy, square);
+        case r:
+            return get_rook_attacks(occupancy, square);
+        case q:
+            return get_queen_attacks(occupancy, square);
+        case n:
+            return Masks.knight[square];
+        case k:
+            return Masks.king[square];
+        default:
+            return 0;
+    }
+}
+
+static inline void generate_all(const S_Board* const board, S_Moves* Moves, u64 empty_or_enemy, u8 pieceType, u8 pieceOffset){
+    u64 bb = board->pieces[pieceType + pieceOffset], attack_bb;
+    u8 from_square, to_square;
+
+    while(bb){
+        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        attack_bb = get_attacks(board->occupied_squares_by[BOTH], pieceType, from_square) & empty_or_enemy;
+
+        while(attack_bb){
+            to_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
+            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
+            if ((1ULL << to_square) & ~(board->occupied_squares_by[BOTH])){
+                Moves->moves[Moves->count++] = encode_move(pieceType + pieceOffset, from_square, to_square, NO_PIECE, NO_PIECE, QUIET);
+            }else{
+                Moves->moves[Moves->count++] = encode_move(pieceType + pieceOffset, from_square, to_square, NO_PIECE, get_target_piece(board, to_square), CAPTURE);
+            }
+        }
+    }
+}
+
+static inline void generate_captures(const S_Board* const board, S_Moves* Moves, u8 pieceType, u8 pieceOffset){
+    u64 bb = board->pieces[pieceType + pieceOffset], attack_bb;
+    u8 from_square, to_square;
+
+    while(bb){
+        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        attack_bb = get_attacks(board->occupied_squares_by[BOTH], pieceType, from_square) & board->occupied_squares_by[1 - board->sideToMove];
+
+        while(attack_bb){
+            to_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
+            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
+            Moves->moves[Moves->count++] = encode_move(pieceType + pieceOffset, from_square, to_square, NO_PIECE, get_target_piece(board, to_square), CAPTURE);
+        }
+    }
 }
 
 void generateOnlyCaptures(const S_Board* const board, S_Moves* Moves){
@@ -105,65 +184,15 @@ void generateOnlyCaptures(const S_Board* const board, S_Moves* Moves){
         }
     }
 
-    bb = board->pieces[n + pieces_offset];
-    while(bb){
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = Masks.knight[from_square] & board->occupied_squares_by[enemy_color];
-
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            Moves->moves[Moves->count++] = encode_move(n + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-        }
-    }
-
-    bb = board->pieces[r + pieces_offset];
-    while (bb) {
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = get_rook_attacks(board->occupied_squares_by[BOTH], from_square) & board->occupied_squares_by[enemy_color];
-
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            Moves->moves[Moves->count++] = encode_move(r + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-        }
-    }
-
-    bb = board->pieces[b + pieces_offset];
-    while (bb) {
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = get_bishop_attacks(board->occupied_squares_by[BOTH], from_square) & board->occupied_squares_by[enemy_color];
-
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            Moves->moves[Moves->count++] = encode_move(b + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-        }
-    }
-
-    bb = board->pieces[q + pieces_offset];
-    while (bb) {
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = get_queen_attacks(board->occupied_squares_by[BOTH], from_square) & board->occupied_squares_by[enemy_color];
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            Moves->moves[Moves->count++] = encode_move(q + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-        }
-    }
+    generate_captures(board, Moves, n, pieces_offset);
+    generate_captures(board, Moves, r, pieces_offset);
+    generate_captures(board, Moves, b, pieces_offset);
+    generate_captures(board, Moves, q, pieces_offset);
 
     bb = board->pieces[k + pieces_offset];
-
-    // during search we never allow for a king capture, so no need for while loop
-
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
     CLEAR_LEAST_SIGNIFICANT_BIT(bb);
     attack_bb = Masks.king[from_square] & board->occupied_squares_by[enemy_color];
-
     while(attack_bb){
         to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
@@ -235,84 +264,20 @@ void generateMoves(const S_Board* const board, S_Moves* Moves){
         }
     }
 
-    bb = board->pieces[n + pieces_offset];
-    while(bb){
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = (Masks.knight[from_square] & empty_or_enemy);
-
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if ((1ULL << to_sqr) & ~(board->occupied_squares_by[BOTH])){
-                Moves->moves[Moves->count++] = encode_move(n + pieces_offset, from_square, to_sqr, NO_PIECE, NO_PIECE, QUIET);
-            }else{
-                Moves->moves[Moves->count++] = encode_move(n + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-            }
-        }
-    }
-
-    bb = board->pieces[r + pieces_offset];
-    while (bb) {
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = get_rook_attacks(board->occupied_squares_by[BOTH], from_square) & empty_or_enemy;
-
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if ((1ULL << to_sqr) & ~(board->occupied_squares_by[BOTH])){
-                Moves->moves[Moves->count++] = encode_move(r + pieces_offset, from_square, to_sqr, NO_PIECE, NO_PIECE, QUIET);
-            }else{
-                Moves->moves[Moves->count++] = encode_move(r + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-            }
-        }
-    }
-
-    bb = board->pieces[b + pieces_offset];
-    while (bb) {
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = get_bishop_attacks(board->occupied_squares_by[BOTH], from_square) & empty_or_enemy;
-
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if ((1ULL << to_sqr) & ~(board->occupied_squares_by[BOTH])){
-                Moves->moves[Moves->count++] = encode_move(b + pieces_offset, from_square, to_sqr, NO_PIECE, NO_PIECE, QUIET);
-            }else{
-                Moves->moves[Moves->count++] = encode_move(b + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-            }
-        }
-    }
-
-    bb = board->pieces[q + pieces_offset];
-    while (bb) {
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        attack_bb = get_queen_attacks(board->occupied_squares_by[BOTH], from_square) & empty_or_enemy;
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if ((1ULL << to_sqr) & ~(board->occupied_squares_by[BOTH])){
-                Moves->moves[Moves->count++] = encode_move(q + pieces_offset, from_square, to_sqr, NO_PIECE, NO_PIECE, QUIET);
-            }else{
-                Moves->moves[Moves->count++] = encode_move(q + pieces_offset, from_square, to_sqr, NO_PIECE, get_target_piece(board, to_sqr), CAPTURE);
-            }
-        }
-    }
+    generate_all(board, Moves, empty_or_enemy, n, pieces_offset);
+    generate_all(board, Moves, empty_or_enemy, r, pieces_offset);
+    generate_all(board, Moves, empty_or_enemy, b, pieces_offset);
+    generate_all(board, Moves, empty_or_enemy, q, pieces_offset);
 
     bb = board->pieces[k + pieces_offset];
-
-    // during search we never allow for a king capture, so no need for while loop
-
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
     CLEAR_LEAST_SIGNIFICANT_BIT(bb);
     attack_bb = (Masks.king[from_square] & empty_or_enemy);
-
     while(attack_bb){
         to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
+        // if (is_square_attacked(board, to_sqr))
+        //     continue;
         if ((1ULL << to_sqr) & ~(board->occupied_squares_by[BOTH])){
             Moves->moves[Moves->count++] = encode_move(k + pieces_offset, from_square, to_sqr, NO_PIECE, NO_PIECE, QUIET);
         }else{
@@ -324,20 +289,102 @@ void generateMoves(const S_Board* const board, S_Moves* Moves){
     #define SQUARES_NEEDED_EMPTY__CASTLE_QUEEN 0xE00000000000000LLU
     #define REFLECT_SQUARE_OFFSET 56
 
-    if (board->castlePermission && !is_square_attacked(board, GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + pieces_offset]))){
+    if (board->castlePermission && !square_attackers(board, GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + pieces_offset]))){
         if (((board->castlePermission & wk) * enemy_color) | ((board->castlePermission & bk) * (side_to_move))){
             if(!(board->occupied_squares_by[BOTH] & (SQUARES_NEEDED_EMPTY__CASTLE_KING >> REFLECT_SQUARE_OFFSET * side_to_move))){
-                if (is_square_attacked(board, (F1 - REFLECT_SQUARE_OFFSET * side_to_move)) == 0){
+                if (square_attackers(board, (F1 - REFLECT_SQUARE_OFFSET * side_to_move)) == 0 && square_attackers(board, (G1 - REFLECT_SQUARE_OFFSET * side_to_move)) == 0){
                     Moves->moves[Moves->count++] = encode_move(k + pieces_offset, from_square, G1 - REFLECT_SQUARE_OFFSET * side_to_move, NO_PIECE, NO_PIECE, KING_CASTLE);
                 }
             }
         }
         if (((board->castlePermission & wq) * enemy_color) | ((board->castlePermission & bq) * (side_to_move))){
             if(!(board->occupied_squares_by[BOTH] & (SQUARES_NEEDED_EMPTY__CASTLE_QUEEN >> REFLECT_SQUARE_OFFSET * side_to_move))){
-                if (is_square_attacked(board, (D1 - REFLECT_SQUARE_OFFSET * side_to_move)) == 0){ 
+                if (square_attackers(board, (D1 - REFLECT_SQUARE_OFFSET * side_to_move)) == 0 && square_attackers(board, (C1 - REFLECT_SQUARE_OFFSET * side_to_move)) == 0){ 
                     Moves->moves[Moves->count++] = encode_move(k + pieces_offset, from_square, C1 - REFLECT_SQUARE_OFFSET * side_to_move, NO_PIECE, NO_PIECE, QUEEN_CASTLE);
                 }
             }
         }
+    }
+}
+
+u64 is_legal(const S_Board* Board, u8 kingSquare, u32 Move, u64 _pin, u64 checkers) { 
+    // return 0;
+    u8 from_square = MOVE_GET_FROM_SQUARE(Move), to_square = MOVE_GET_TO_SQUARE(Move), pieceType = MOVE_GET_PIECE(Move);
+
+
+    /* if it's a double check, a king has to move */
+    if (MORE_THAN_ONE(checkers)){
+        if (from_square != kingSquare)
+            return 0;
+        
+        if (is_square_attacked_custom(
+                Board,
+                Board->occupied_squares_by[BOTH] ^ sqrs[kingSquare],
+                to_square)){    
+            return 0;
+        }
+        return 1;
+    /* if it's a check we can:
+        King:
+            move a king
+            capture attacking piece if it isn't protected
+        Other:
+            block a check
+            capture attacking piece
+    */
+    }else if (checkers){
+        if (from_square == kingSquare){
+            // check if captures wit king work properly
+            if (is_square_attacked_custom(
+                    Board,
+                    Board->occupied_squares_by[BOTH] ^ sqrs[kingSquare],
+                    to_square))  
+                return 0;
+    
+            return 1;
+        }else{
+            // is already pinned
+            if (sqrs[from_square] & _pin)
+                return 0;
+            // blocks or captures
+            if (sqrs[to_square] & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
+                return 1;
+            return 0;
+        }
+
+    }
+
+
+    /* if there is no check, we only need to care about pins and en passant discover checks*/
+    if (MOVE_GET_FLAG(Move) == EP_CAPTURE)
+        // todo
+        return 0;
+
+    if (_pin & sqrs[from_square]){
+        return line[kingSquare][from_square] & sqrs[to_square];
+    }
+
+    return 1;
+};
+
+void filter_illegal(const S_Board* const board, S_Moves* Moves){
+    u8 king_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[K - 6 * board->sideToMove]);
+
+    const u32* end = Moves->moves + Moves->count;
+    const u64 _pins = pins(board, king_square, 6 * board->sideToMove);
+    const u64 isInCheck = square_attackers(board, king_square);
+
+    // printf("-- KS: %s ; isInCheck: %llu, pins:\n", squares_int_to_chr[king_square], isInCheck);
+    // print_bitboard(board->occupied_squares_by[BOTH] ^ sqrs[king_square], NO_SQR);
+
+    u32* lastMove = Moves->moves;
+
+    for (u32* currentMove = Moves->moves; currentMove != end; currentMove++){
+        if (!is_legal(board, king_square, *currentMove, _pins, isInCheck)){
+            Moves->count--;
+            continue;
+        }
+        *lastMove = *currentMove;
+        lastMove++;
     }
 }
