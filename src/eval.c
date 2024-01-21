@@ -112,88 +112,95 @@ void clear_killer_moves(){
     memset(killer_moves, 0, sizeof(u32) * MAX_GAME_SIZE * 2);
 }
 
-i32 evaluate(S_Board * Board){
+i32 evaluate(S_Position* Pos){
     u64 bb;
     i32 eval = 0;
-    const int8_t side_multiplier = Board->sideToMove == BLACK ? -1 : 1;
+    const int8_t side_multiplier = Pos->sideToMove == BLACK ? -1 : 1;
     u8 square;
 
     for (int piece = 0; piece < 6; piece++){
-        bb = Board->pieces[piece];
+        bb = Pos->Board->piecesBB[piece] & Pos->Board->colorBB[BLACK];
         while (bb) {
             square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(bb);
             eval -= PIECE_VALUE[piece];
             eval -= PIECE_SQUARE_BONUS[piece][mirror_square[square]];
         }
-    }
-    for (int piece = 6; piece < 12; piece++){
-        bb = Board->pieces[piece];
+
+        bb = Pos->Board->piecesBB[piece] & Pos->Board->colorBB[WHITE];
         while (bb) {
             square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(bb);
             eval += PIECE_VALUE[piece - 6];
             eval += PIECE_SQUARE_BONUS[piece - 6][square];
-
         }
     }
+    // for (int piece = 6; piece < 12; piece++){
+    //     bb = Pos->Board->piecesBB[piece];
+    //     while (bb) {
+    //         square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+    //         CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+    //         eval += PIECE_VALUE[piece - 6];
+    //         eval += PIECE_SQUARE_BONUS[piece - 6][square];
+    //     }
+    // }
     return eval * side_multiplier;
 }
 
-void sort_moves(S_Board* Board, S_Moves* Moves){
-    u64 temp_move;
-    uint scores[256];
-    uint temp_score;
-    for (int i = 0; i < Moves->count; i++){
-        if (MOVE_GET_FLAG(Moves->moves[i]) >= CAPTURE){
-            scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])] + CAPTURE_BONUS;
-        }else{
-            if (Moves->moves[i] == killer_moves[0][Board->ply]){
-                scores[i] = FIRST_KILLER_MOVE_BONUS;
-            }else if (Moves->moves[i] == killer_moves[1][Board->ply]){
-                scores[i] = SECOND_KILLER_MOVE_BONUS;
-            }else{
-                scores[i] = 0;
-            }    
-        }
-    }
+// void sort_moves(S_Board* Board, S_Moves* Moves, uint ply){
+//     u64 temp_move;
+//     uint scores[256];
+//     uint temp_score;
+//     for (int i = 0; i < Moves->count; i++){
+//         if (MOVE_GET_FLAG(Moves->moves[i]) >= CAPTURE){
+//             scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])] + CAPTURE_BONUS;
+//         }else{
+//             if (Moves->moves[i] == killer_moves[0][ply]){
+//                 scores[i] = FIRST_KILLER_MOVE_BONUS;
+//             }else if (Moves->moves[i] == killer_moves[1][ply]){
+//                 scores[i] = SECOND_KILLER_MOVE_BONUS;
+//             }else{
+//                 scores[i] = 0;
+//             }    
+//         }
+//     }
     
-    for (int i = 0; i < Moves->count; i++){
-        if (scores[i] == 0)
-            continue;
-        for (int j = 0; j < Moves->count; j++){
-            if (scores[i] > scores[j]){
-                temp_move = Moves->moves[j];
-                Moves->moves[j] = Moves->moves[i];
-                Moves->moves[i] = temp_move;
+//     for (int i = 0; i < Moves->count; i++){
+//         if (scores[i] == 0)
+//             continue;
+//         for (int j = 0; j < Moves->count; j++){
+//             if (scores[i] > scores[j]){
+//                 temp_move = Moves->moves[j];
+//                 Moves->moves[j] = Moves->moves[i];
+//                 Moves->moves[i] = temp_move;
 
-                temp_score = scores[j];
-                scores[j] = scores[i];
-                scores[i] = temp_score;
-            }
-        }
-    }
-}
+//                 temp_score = scores[j];
+//                 scores[j] = scores[i];
+//                 scores[i] = temp_score;
+//             }
+//         }
+//     }
+// }
 
-void sort_captures(S_Board* Board, S_Moves* Moves){
-    u64 temp_move;
-    uint scores[256];
-    uint temp_score;
+// void sort_captures(S_Board* Board, S_Moves* Moves){
+//     u64 temp_move;
+//     uint scores[256];
+//     uint temp_score;
 
-    for (int i = 0; i < Moves->count; i++){
-        scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])];
-    }
-    for (int i = 0; i < Moves->count; i++){
-        for (int j = 0; j < Moves->count; j++){
-            if (scores[i] > scores[j]){
-                temp_move = Moves->moves[j];
-                Moves->moves[j] = Moves->moves[i];
-                Moves->moves[i] = temp_move;
+//     for (int i = 0; i < Moves->count; i++){
+//         scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])];
+//     }
+//     for (int i = 0; i < Moves->count; i++){
+//         for (int j = 0; j < Moves->count; j++){
+//             if (scores[i] > scores[j]){
+//                 temp_move = Moves->moves[j];
+//                 Moves->moves[j] = Moves->moves[i];
+//                 Moves->moves[i] = temp_move;
 
-                temp_score = scores[j];
-                scores[j] = scores[i];
-                scores[i] = temp_score;
-            }
-        }
-    }
-}
+//                 temp_score = scores[j];
+//                 scores[j] = scores[i];
+//                 scores[i] = temp_score;
+//             }
+//         }
+//     }
+// }

@@ -1,33 +1,49 @@
 #include "defs.h"
 #include <stdio.h>
 
-static INLINE void handle_promotion(S_Board* board, u8 piece, u8 promotion_piece, u8 to_sqr, u8 color){
-    CLEAR_BIT(board->pieces[piece], to_sqr);
-    board->hash ^= TT_squares_hash[piece][to_sqr];
-    SET_BIT(board->pieces[promotion_piece - 6 * color], to_sqr);
-    board->hash ^= TT_squares_hash[promotion_piece - 6 * color][to_sqr];
+static INLINE void handle_promotion(S_Position* Pos, u8 piece, u8 promotion_piece, u8 to_sqr, u8 color){
+    CLEAR_BIT(Pos->Board->piecesBB[piece], to_sqr);
+    SET_BIT(Pos->Board->piecesBB[promotion_piece - 6 * color], to_sqr);
+    Pos->Board->hash ^= TT_squares_hash[piece][to_sqr];
+    Pos->Board->hash ^= TT_squares_hash[promotion_piece - 6 * color][to_sqr];
 }
 
-static INLINE void handle_promotion_capture(S_Board* board, u32 move, u8 piece, u8 promotion_piece, u8 to_sqr, u8 color){
-    CLEAR_BIT(board->pieces[piece], to_sqr);
-    board->hash ^= TT_squares_hash[piece][to_sqr];
-    SET_BIT(board->pieces[promotion_piece - 6 * color], to_sqr);
-    board->hash ^= TT_squares_hash[promotion_piece - 6 * color][to_sqr];
-    CLEAR_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], to_sqr);
-    board->hash ^= TT_squares_hash[MOVE_GET_CAPTURE_PIECE(move)][to_sqr];
-    CLEAR_BIT(board->occupied_squares_by[color ^ 1], to_sqr);
+static INLINE void handle_promotion_capture(S_Position* Pos, u16 move, u8 pieceType, u8 capturePieceType, u8 promotion_piece, u8 to_sqr, u8 color){
+    CLEAR_BIT(Pos->Board->piecesBB[pieceType], to_sqr);
+    CLEAR_BIT(Pos->Board->piecesBB[capturePieceType], to_sqr);
+    CLEAR_BIT(Pos->Board->colorBB[color ^ 1], to_sqr);
+    SET_BIT(Pos->Board->piecesBB[promotion_piece - 6 * color], to_sqr);
+    Pos->Board->hash ^= TT_squares_hash[pieceType][to_sqr];
+    Pos->Board->hash ^= TT_squares_hash[promotion_piece - 6 * color][to_sqr];
+    Pos->Board->hash ^= TT_squares_hash[capturePieceType][to_sqr];
 }
 
-static INLINE void handle_castling(S_Board* board, u8 rook, u8 rook_from, u8 rook_to, u8 color){
-    CLEAR_BIT(board->pieces[rook], rook_from);
-    board->hash ^= TT_squares_hash[rook][rook_from];
-    CLEAR_BIT(board->occupied_squares_by[color], rook_from);
-    SET_BIT(board->pieces[rook], rook_to);
-    board->hash ^= TT_squares_hash[rook][rook_to];
-    SET_BIT(board->occupied_squares_by[color], rook_to);
+static INLINE void handle_castling(S_Position* Pos, u8 rook, u8 rook_from, u8 rook_to, u8 color){
+    CLEAR_BIT(Pos->Board->piecesBB[rook], rook_from);
+    CLEAR_BIT(Pos->Board->colorBB[color], rook_from);
+    SET_BIT(Pos->Board->piecesBB[rook], rook_to);
+    SET_BIT(Pos->Board->colorBB[color], rook_to);
+    Pos->Board->hash ^= TT_squares_hash[rook][rook_from];
+    Pos->Board->hash ^= TT_squares_hash[rook][rook_to];
 }
 
-void make_move(S_Board* board, u32 move){
+void make_move(S_Position* Pos, u16 move){
+    const u8 fromSqr = MOVE_FROM_SQUARE(move), toSqr = MOVE_TO_SQUARE(move);
+    const u8 pieceTypeFrom = Pos->Board->pieceSet[fromSqr];
+    const u8 pieceTypeTo = Pos->Board->pieceSet[toSqr];
+
+    Pos->Board->pieceSet[fromSqr] = 0;
+    Pos->Board->pieceSet[toSqr] = pieceTypeFrom;
+
+    CLEAR_BIT(Pos->Board->piecesBB[pieceChrToInt(pieceTypeFrom)], fromSqr);
+    SET_BIT(Pos->Board->piecesBB[pieceChrToInt(pieceTypeFrom)], toSqr);
+
+    switch (MOVE_GET_FLAG(move)) {
+        
+    }
+}
+
+void _make_move(S_Board* board, u32 move){
     const u8 piece = MOVE_GET_PIECE(move), to_sqr = MOVE_GET_TO_SQUARE(move), from_square = MOVE_GET_FROM_SQUARE(move), color = board->sideToMove;
 
     board->hash ^= TT_enpassant_hash[board->enPassantSquare % 8];
@@ -111,36 +127,36 @@ void make_move(S_Board* board, u32 move){
 }
 
 
-void print_move(u32 move){
-    printf("%c     | %s          | %s        | %c               | %c            | %lu         \n",
-        pieces_int_to_chr[MOVE_GET_PIECE(move)],
-        squares_int_to_chr[MOVE_GET_FROM_SQUARE(move)],
-        squares_int_to_chr[MOVE_GET_TO_SQUARE(move)],
-        (MOVE_GET_PROMOTION_PIECE(move)) >> 16 == 0 ? '0' : pieces_int_to_chr[MOVE_GET_PROMOTION_PIECE(move)] >> 16,
-        pieces_int_to_chr[MOVE_GET_CAPTURE_PIECE(move)],
-        (MOVE_GET_FLAG(move))
-    );
-}
+// void print_move(u32 move){
+//     printf("%c     | %s          | %s        | %c               | %c            | %lu         \n",
+//         pieces_int_to_chr[MOVE_GET_PIECE(move)],
+//         squares_int_to_chr[MOVE_GET_FROM_SQUARE(move)],
+//         squares_int_to_chr[MOVE_GET_TO_SQUARE(move)],
+//         (MOVE_GET_PROMOTION_PIECE(move)) >> 16 == 0 ? '0' : pieces_int_to_chr[MOVE_GET_PROMOTION_PIECE(move)] >> 16,
+//         pieces_int_to_chr[MOVE_GET_CAPTURE_PIECE(move)],
+//         (MOVE_GET_FLAG(move))
+//     );
+// }
 
-void print_moves(S_Moves* Moves){
-    u32 move;
-    printf("Moves count: %i\n", Moves->count);
-    printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
-    printf("piece | from_square | to_square | promotion_piece | capture_piece | flag |\n");
-    printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
-    for (int i = 0; i < Moves->count; i++){
-        move = Moves->moves[i];
-        printf("%c     | %s          | %s        | %c               | %c            | %lu         \n",
-            pieces_int_to_chr[MOVE_GET_PIECE(move)],
-            squares_int_to_chr[MOVE_GET_FROM_SQUARE(move)],
-            squares_int_to_chr[MOVE_GET_TO_SQUARE(move)],
-            (MOVE_GET_PROMOTION_PIECE(move)) >> 16 == 0 ? '0' : pieces_int_to_chr[MOVE_GET_PROMOTION_PIECE(move)] >> 16,
-            pieces_int_to_chr[MOVE_GET_CAPTURE_PIECE(move)],
-            (MOVE_GET_FLAG(move))
-        );
-        printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
-    }
-}
+// void print_moves(S_Moves* Moves){
+//     u32 move;
+//     printf("Moves count: %i\n", Moves->count);
+//     printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+//     printf("piece | from_square | to_square | promotion_piece | capture_piece | flag |\n");
+//     printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+//     for (int i = 0; i < Moves->count; i++){
+//         move = Moves->moves[i];
+//         printf("%c     | %s          | %s        | %c               | %c            | %lu         \n",
+//             pieces_int_to_chr[MOVE_GET_PIECE(move)],
+//             squares_int_to_chr[MOVE_GET_FROM_SQUARE(move)],
+//             squares_int_to_chr[MOVE_GET_TO_SQUARE(move)],
+//             (MOVE_GET_PROMOTION_PIECE(move)) >> 16 == 0 ? '0' : pieces_int_to_chr[MOVE_GET_PROMOTION_PIECE(move)] >> 16,
+//             pieces_int_to_chr[MOVE_GET_CAPTURE_PIECE(move)],
+//             (MOVE_GET_FLAG(move))
+//         );
+//         printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+//     }
+// }
 
 // void undo_move(S_Board* board, u32 move){
 //     board->ply--;

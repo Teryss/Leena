@@ -49,7 +49,7 @@ enum squares{
 enum pieces {p, n, b, r, q, k, P, N, B, R, Q, K, NO_PIECE};
 enum color {WHITE, BLACK, BOTH};
 enum castling {wk = 1, wq = 2, bk = 4, bq = 8};
-enum load_fen_result {load_fen_success, load_fen_failure};
+enum load_fen_result {SUCCESS, TOO_MANY_SPACES, NOT_ENOUGH_INFO, WRONG_SIDE_TO_MOVE, WRONG_CASTLE_PERM, WRONG_EN_PASSANT};
 enum move_type{
     QUIET, DOUBLE_PUSH, KING_CASTLE, QUEEN_CASTLE,
     PROMOTION_N, PROMOTION_B, PROMOTION_R, PROMOTION_Q,
@@ -62,16 +62,20 @@ typedef enum __attribute__((__packed__)){
 }Node;
 
 typedef struct{
-    u64 pieces[12];
-    u64 occupied_squares_by[3];
+    u64 piecesBB[6];
+    u64 colorBB[3];
     u64 hash;
+    u8 pieceSet[64];
+}S_Board;
+
+typedef struct{
+    S_Board* Board;
     uint ply;
-    u8 piece_set[64];
     u8 enPassantSquare;
     u8 castlePermission;
     u8 fiftyMovesCounter;
     u8 sideToMove;
-}S_Board;
+}S_Position;
 
 typedef struct{
     u64 attacks[107647];
@@ -83,7 +87,7 @@ typedef struct{
 }S_Masks;
 
 typedef struct{
-    u32 moves[256];
+    u16 moves[256];
     uint count;
 }S_Moves;
 
@@ -117,9 +121,9 @@ extern u64 files[8];
 extern void init_bb();
 
 // board.c
-extern uint load_fen(S_Board * board, const char* const FEN);
-extern void reset(S_Board * board);
-extern void print_board(S_Board * board);
+extern uint load_fen(S_Position* Pos, const char* const FEN);
+extern void reset(S_Position* pos);
+extern void print_board(S_Position* pos);
 extern void print_bitboard(u64 bitboard, int current_pos);
 extern void update_occupied_squares(S_Board* board); 
 
@@ -152,32 +156,23 @@ extern const int16_t* PIECE_SQUARE_BONUS[6];
 
 // movegen.c
 #define GET_PIECE_FAILED_FLAG 15
-#define MOVE_MASK_PIECE (0b1111UL)
-#define MOVE_MASK_FROM_SQUARE (0b111111UL << 4UL)
-#define MOVE_MASK_TO_SQUARE (0b111111UL << 10UL)
-#define MOVE_MASK_PROMOTION_PIECE (0b1111UL << 16UL)
-#define MOVE_MASK_CAPTURE_PIECE (0b1111UL << 20UL)
-#define MOVE_MASK_FLAG (0b1111UL << 24UL)
-#define MOVE_GET_PIECE(move) (move & MOVE_MASK_PIECE)
-#define MOVE_GET_FROM_SQUARE(move) ((move & MOVE_MASK_FROM_SQUARE) >> 4)
-#define MOVE_GET_TO_SQUARE(move) ((move & MOVE_MASK_TO_SQUARE) >> 10)
-#define MOVE_GET_PROMOTION_PIECE(move) ((move & MOVE_MASK_PROMOTION_PIECE) >> 16)
-#define MOVE_GET_CAPTURE_PIECE(move) ((move & MOVE_MASK_CAPTURE_PIECE) >> 20)
-#define MOVE_GET_FLAG(move) ((move & MOVE_MASK_FLAG) >> 24)
+#define MOVE_FROM_SQUARE(move) (move & 0b111111U)
+#define MOVE_TO_SQUARE(move) ((move & (0b111111UL << 6U)) >> 6)
+#define MOVE_GET_FLAG(move) ((move & (0b1111UL << 12U)) >> 12)
 
-extern void generateMoves(const S_Board* const board, S_Moves* Moves);
-extern void generateOnlyCaptures(const S_Board* const board, S_Moves* Moves);
-extern CONST u16 encode_state(const S_Board* const Board);
-extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
+extern void generateMoves(const S_Position* const Pos, S_Moves* Moves);
+extern void generateOnlyCaptures(const S_Position* const Pos, S_Moves* Moves);
+// extern CONST u16 encode_state(const S_Board* const Board);
+// extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
 extern void print_moves(S_Moves* Moves);
 extern void print_move(u32 move);
-extern PURE u8 is_king_attacked(const S_Board* const board);
-extern void filter_illegal(const S_Board* const board, S_Moves* Moves);
+extern PURE u8 is_king_attacked(const S_Position* const Pos);
+extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 
 // perft.c
 extern void perft_suite(S_Board* Board);
 extern u64 perft(S_Board* Board, uint depth);
-extern void make_move(S_Board* board, u32 move);
+extern void make_move(S_Position* Pos, u16 move);
 
 // search.c
 extern u64 total_nodes_searched;
@@ -185,9 +180,9 @@ extern S_Move search(S_Board* Board, uint depth);
 
 // eval.c
 extern u32 killer_moves[MAX_GAME_SIZE][2];
-extern i32 evaluate(S_Board * Board);
+extern i32 evaluate(S_Position* Pos);
 extern void clear_killer_moves();
-extern void sort_moves(S_Board* Board, S_Moves* Moves);
+extern void sort_moves(S_Board* Board, S_Moves* Moves, uint ply);
 extern void sort_captures(S_Board* Board, S_Moves* Moves);
 
 // ttable.c
@@ -199,7 +194,7 @@ extern u64 TT_side_to_move_hash;
 extern void init_TT();
 extern void hash_position(S_Board* Board);
 
-extern u64 pins(const S_Board* const board, u8 king_square, u8 offset);
+extern u64 pins(const S_Position* const Pos, u8 king_square);
 
 // uci.c
 void uci_loop();
@@ -216,16 +211,41 @@ INLINE u64 get_queen_attacks(u64 occupancy, const uint square){
     return get_bishop_attacks(occupancy, square) | get_rook_attacks(occupancy, square);
 }
 
-INLINE void generate(const S_Board* const board, S_Moves* Moves, GenType WhatToGenerate){
+INLINE void generate(const S_Position* const Pos, S_Moves* Moves, GenType WhatToGenerate){
     switch (WhatToGenerate) {
         case GENERATE_ALL:
-            generateMoves(board, Moves);
-            filter_illegal(board, Moves);
+            generateMoves(Pos, Moves);
+            filter_illegal(Pos, Moves);
             break;
         case GENERATE_CAPTURES:
-            generateOnlyCaptures(board, Moves);
-            filter_illegal(board, Moves);
+            generateOnlyCaptures(Pos, Moves);
+            filter_illegal(Pos, Moves);
             break;
+    }
+}
+
+INLINE u8 pieceChrToInt(char pieceChr){
+    switch (pieceChr){
+        case 'p':
+        case 'P':
+            return 0;
+        case 'n':
+        case 'N':
+            return 1;
+        case 'b':
+        case 'B':
+            return 2;
+        case 'r':
+        case 'R':
+            return 3;
+        case 'q':
+        case 'Q':
+            return 4;
+        case 'k':
+        case 'K':
+            return 5;
+        default:
+            return 15;
     }
 }
 
