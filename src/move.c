@@ -141,3 +141,91 @@ void print_moves(S_Moves* Moves){
         printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
     }
 }
+
+// void undo_move(S_Board* board, u32 move){
+//     board->ply--;
+//     // const u32 move = board->move_history[board->ply];
+//     const u8 piece = MOVE_GET_PIECE(move), to_sqr = MOVE_GET_TO_SQUARE(move), from_square = MOVE_GET_FROM_SQUARE(move), color = board->sideToMove ^ 1;
+
+//     SET_BIT(board->pieces[piece], from_square);
+//     SET_BIT(board->occupied_squares_by[color], from_square);
+//     CLEAR_BIT(board->pieces[piece], to_sqr);
+//     CLEAR_BIT(board->occupied_squares_by[color], to_sqr);
+
+//     switch (MOVE_GET_FLAG(move)) {
+//         case DOUBLE_PUSH:
+//             board->enPassantSquare = to_sqr + 8 - (16 * color);
+//             break;
+//         case CAPTURE:
+//             SET_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], to_sqr);
+//             SET_BIT(board->occupied_squares_by[color ^ 1], to_sqr);
+//             break;
+//         case EP_CAPTURE:
+//             SET_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], (to_sqr + 8 - (16 * (board->sideToMove ^ 1))));
+//             SET_BIT(board->occupied_squares_by[color ^ 1], (to_sqr + 8 - (16 * (board->sideToMove ^ 1))));
+//             break;
+//         case KING_CASTLE: case QUEEN_CASTLE:
+//             switch (to_sqr) {
+//                 case G1:
+//                     SET_BIT(board->pieces[R], H1);
+//                     SET_BIT(board->occupied_squares_by[color], H1);
+//                     CLEAR_BIT(board->pieces[R], F1);
+//                     CLEAR_BIT(board->occupied_squares_by[color], F1);
+//                     break;
+//                 case G8:
+//                     SET_BIT(board->pieces[r], H8);
+//                     SET_BIT(board->occupied_squares_by[color], H8);
+//                     CLEAR_BIT(board->pieces[r], F8);
+//                     CLEAR_BIT(board->occupied_squares_by[color], F8);
+//                 case C1:
+//                     SET_BIT(board->pieces[R], A1);
+//                     SET_BIT(board->occupied_squares_by[color], A1);
+//                     CLEAR_BIT(board->pieces[R], D1);
+//                     CLEAR_BIT(board->occupied_squares_by[color], D1);
+//                     break;
+//                 case C8:
+//                     SET_BIT(board->pieces[r], A8);
+//                     SET_BIT(board->occupied_squares_by[color], A8);
+//                     CLEAR_BIT(board->pieces[r], D8);
+//                     CLEAR_BIT(board->occupied_squares_by[color], D8);
+//                     break;
+//             }
+//             break;
+//         case PROMOTION_N:
+//             CLEAR_BIT(board->pieces[n + color], to_sqr);
+//             break;
+//         case PROMOTION_R:
+//             CLEAR_BIT(board->pieces[r + color], to_sqr);
+//             break;
+//         case PROMOTION_B:
+//             CLEAR_BIT(board->pieces[b + color], to_sqr);
+//             break;
+//         case PROMOTION_Q:
+//             CLEAR_BIT(board->pieces[q + color], to_sqr);
+//             break;
+//         case CAPTURE_PROMOTION_N:
+//             CLEAR_BIT(board->pieces[n + color], to_sqr);
+//             SET_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], to_sqr);
+//             SET_BIT(board->occupied_squares_by[color ^ 1], to_sqr);
+//             break;
+//         case CAPTURE_PROMOTION_R:
+//             CLEAR_BIT(board->pieces[r + color], to_sqr);
+//             SET_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], to_sqr);
+//             SET_BIT(board->occupied_squares_by[color ^ 1], to_sqr);
+//             break;
+//         case CAPTURE_PROMOTION_B:
+//             CLEAR_BIT(board->pieces[b + color], to_sqr);
+//             SET_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], to_sqr);
+//             SET_BIT(board->occupied_squares_by[color ^ 1], to_sqr);
+//             break;
+//         case CAPTURE_PROMOTION_Q:
+//             CLEAR_BIT(board->pieces[q + color], to_sqr);
+//             SET_BIT(board->pieces[MOVE_GET_CAPTURE_PIECE(move)], to_sqr);
+//             SET_BIT(board->occupied_squares_by[color ^ 1], to_sqr);
+//             break;
+//     }
+//     board->sideToMove ^= 1;
+//     board->enPassantSquare = STATE_GET_EN_PASSANT_SQR(previous_state);
+//     board->castlePermission = castlePermission;
+//     board->occupied_squares_by[BOTH] = board->occupied_squares_by[WHITE] | board->occupied_squares_by[BLACK];
+// }

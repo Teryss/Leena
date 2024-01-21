@@ -53,38 +53,6 @@ static INLINE u64 is_square_attacked_custom(const S_Board* board, const u64 occ,
     );
 }
 
-/*
-It's used during search/perft, when sideToMove has already been changed
-During move generation we use is_square_attacked and specify king's location
-*/
-u8 is_king_attacked(const S_Board* const board){
-    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
-    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove] | board->pieces[Q - 6 * board->sideToMove])) return 1;
-    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[B - 6 * board->sideToMove] | board->pieces[Q - 6 * board->sideToMove])) return 1; 
-    if (Masks.pawn_attacks[board->sideToMove^1][square]  & board->pieces[P - 6 * board->sideToMove]) return 1;
-    if (Masks.knight[square] & board->pieces[N - 6 * board->sideToMove]) return 1;
-    if (Masks.king[square] & board->pieces[K - 6 * board->sideToMove]) return 1;
-    return 0;
-}
-
-u64 pins(const S_Board* const board, u8 king_square, u8 offset){
-    u64 xRayAttackers = (board->pieces[r + offset] | board->pieces[q + offset]) & get_rook_attacks(0, king_square) |
-                            (board->pieces[b + offset] | board->pieces[q + offset]) & get_bishop_attacks(0, king_square);
-    u64 pins, possible_pins;
-    u8 attacker_square;
-
-    while (xRayAttackers) {
-        attacker_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(xRayAttackers);
-        CLEAR_LEAST_SIGNIFICANT_BIT(xRayAttackers);
-        
-        possible_pins = between[king_square][attacker_square] & board->occupied_squares_by[board->sideToMove];
-        if (possible_pins && !(MORE_THAN_ONE(possible_pins))){
-            pins |= possible_pins;
-        }
-    }
-    return pins;
-}
-
 static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     switch (pieceType) {
         case b:
@@ -102,7 +70,7 @@ static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     }
 }
 
-static inline void generate_all(const S_Board* const board, S_Moves* Moves, u64 empty_or_enemy, u8 pieceType, u8 pieceOffset){
+static inline void _generate_all(const S_Board* const board, S_Moves* Moves, u64 empty_or_enemy, u8 pieceType, u8 pieceOffset){
     u64 bb = board->pieces[pieceType + pieceOffset], attack_bb;
     u8 from_square, to_square;
 
@@ -123,7 +91,7 @@ static inline void generate_all(const S_Board* const board, S_Moves* Moves, u64 
     }
 }
 
-static inline void generate_captures(const S_Board* const board, S_Moves* Moves, u8 pieceType, u8 pieceOffset){
+static inline void _generate_captures(const S_Board* const board, S_Moves* Moves, u8 pieceType, u8 pieceOffset){
     u64 bb = board->pieces[pieceType + pieceOffset], attack_bb;
     u8 from_square, to_square;
 
@@ -184,10 +152,10 @@ void generateOnlyCaptures(const S_Board* const board, S_Moves* Moves){
         }
     }
 
-    generate_captures(board, Moves, n, pieces_offset);
-    generate_captures(board, Moves, r, pieces_offset);
-    generate_captures(board, Moves, b, pieces_offset);
-    generate_captures(board, Moves, q, pieces_offset);
+    _generate_captures(board, Moves, n, pieces_offset);
+    _generate_captures(board, Moves, r, pieces_offset);
+    _generate_captures(board, Moves, b, pieces_offset);
+    _generate_captures(board, Moves, q, pieces_offset);
 
     bb = board->pieces[k + pieces_offset];
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
@@ -264,10 +232,10 @@ void generateMoves(const S_Board* const board, S_Moves* Moves){
         }
     }
 
-    generate_all(board, Moves, empty_or_enemy, n, pieces_offset);
-    generate_all(board, Moves, empty_or_enemy, r, pieces_offset);
-    generate_all(board, Moves, empty_or_enemy, b, pieces_offset);
-    generate_all(board, Moves, empty_or_enemy, q, pieces_offset);
+    _generate_all(board, Moves, empty_or_enemy, n, pieces_offset);
+    _generate_all(board, Moves, empty_or_enemy, r, pieces_offset);
+    _generate_all(board, Moves, empty_or_enemy, b, pieces_offset);
+    _generate_all(board, Moves, empty_or_enemy, q, pieces_offset);
 
     bb = board->pieces[k + pieces_offset];
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
@@ -276,7 +244,7 @@ void generateMoves(const S_Board* const board, S_Moves* Moves){
     while(attack_bb){
         to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-        // if (is_square_attacked(board, to_sqr))
+        // if (square_attackers(board, to_sqr))
         //     continue;
         if ((1ULL << to_sqr) & ~(board->occupied_squares_by[BOTH])){
             Moves->moves[Moves->count++] = encode_move(k + pieces_offset, from_square, to_sqr, NO_PIECE, NO_PIECE, QUIET);
@@ -305,6 +273,24 @@ void generateMoves(const S_Board* const board, S_Moves* Moves){
             }
         }
     }
+}
+
+u64 pins(const S_Board* const board, u8 king_square, u8 offset){
+    u64 xRayAttackers = ((board->pieces[r + offset] | board->pieces[q + offset]) & get_rook_attacks(0, king_square)) |
+                            ((board->pieces[b + offset] | board->pieces[q + offset]) & get_bishop_attacks(0, king_square));
+    u64 pins = 0ULL, possible_pins;
+    u8 attacker_square;
+
+    while (xRayAttackers) {
+        attacker_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(xRayAttackers);
+        CLEAR_LEAST_SIGNIFICANT_BIT(xRayAttackers);
+        
+        possible_pins = between[king_square][attacker_square] & board->occupied_squares_by[board->sideToMove];
+        if (possible_pins && !(MORE_THAN_ONE(possible_pins))){
+            pins |= possible_pins;
+        }
+    }
+    return pins;
 }
 
 u64 is_legal(const S_Board* Board, u8 kingSquare, u32 Move, u64 _pin, u64 checkers) { 
@@ -387,4 +373,19 @@ void filter_illegal(const S_Board* const board, S_Moves* Moves){
         *lastMove = *currentMove;
         lastMove++;
     }
+}
+
+
+/*
+It's used during search/perft, when sideToMove has already been changed
+During move generation we use is_square_attacked and specify king's location
+*/
+u8 is_king_attacked(const S_Board* const board){
+    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(board->pieces[k + 6 * board->sideToMove]);
+    if (get_rook_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[R - 6 * board->sideToMove] | board->pieces[Q - 6 * board->sideToMove])) return 1;
+    if (get_bishop_attacks(board->occupied_squares_by[BOTH], square) & (board->pieces[B - 6 * board->sideToMove] | board->pieces[Q - 6 * board->sideToMove])) return 1; 
+    if (Masks.pawn_attacks[board->sideToMove^1][square]  & board->pieces[P - 6 * board->sideToMove]) return 1;
+    if (Masks.knight[square] & board->pieces[N - 6 * board->sideToMove]) return 1;
+    if (Masks.king[square] & board->pieces[K - 6 * board->sideToMove]) return 1;
+    return 0;
 }

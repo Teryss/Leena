@@ -1,5 +1,6 @@
 #include "defs.h"
 #include <stdio.h>
+#include <inttypes.h>
 #include <string.h>
 
 u64 run_perft(S_Board* Board, uint depth);
@@ -30,7 +31,7 @@ void perft_suite(S_Board* Board){
         load_fen(Board, positions[i]);
         nodes = run_perft(Board, dephts[i]);
         if (nodes != expected_nodes[i]){
-            printf("Failed, depth: %u, expected nodes: %lu, got: %lu\n", dephts[i], expected_nodes[i], nodes);
+            printf("Failed, depth: %u, expected nodes: %"PRIu64", got: %"PRIu64"\n", dephts[i], expected_nodes[i], nodes);
         }else {
             correct++;
             printf("Success\n");
@@ -62,7 +63,7 @@ u64 perft(S_Board* Board, uint depth){
         }
 
         if (current_nodes != 0)
-            printf("%s%s%c: %lu\n", 
+            printf("%s%s%c: %"PRIu64"\n", 
                 squares_int_to_chr[MOVE_GET_FROM_SQUARE(Moves.moves[i])],
                 squares_int_to_chr[MOVE_GET_TO_SQUARE(Moves.moves[i])],
                 (MOVE_GET_PROMOTION_PIECE(Moves.moves[i]) != NO_PIECE ? pieces_int_to_chr[MOVE_GET_PROMOTION_PIECE(Moves.moves[i])] : ' '),
@@ -73,6 +74,26 @@ u64 perft(S_Board* Board, uint depth){
         nodes += current_nodes;
     }
 
+
+    return nodes;
+}
+
+u64 no_undo_perft(S_Board* Board, uint depth){
+    if (depth == 0 || is_king_attacked(Board)) { return 1ULL; }
+
+    u64 nodes = 0ULL;
+    S_Moves Moves;
+    S_Board Board_copy;
+
+    generate(Board, &Moves, GENERATE_ALL);
+
+    for (int i = 0; i < Moves.count; i++){
+        make_move(Board, Moves.moves[i]);
+        if ((is_king_attacked(Board)) == 0){
+            nodes += run_perft(Board, depth - 1);  
+        }
+        memcpy(Board, &Board_copy, sizeof(S_Board));
+    }
 
     return nodes;
 }

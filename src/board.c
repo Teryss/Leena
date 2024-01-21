@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include "defs.h"
 
 const char* pieces_int_to_chr = "pnbrqkPNBRQK-";
@@ -188,8 +189,7 @@ void print_board(S_Board* board){
         printf("\n");
     }
     printf("\n    A  B  C  D  E  F  G  H\n\n");
-    printf("Value: %lu\n", board->occupied_squares_by[BOTH]);
-    printf("Hash: %lx\n", board->hash);
+    printf("Hash: %"PRIx64"\n",board->hash);
     printf("En passant square: %s\n", board->enPassantSquare == 0 ? "-" : squares_int_to_chr[board->enPassantSquare]);
     printf("Castling rights: %c%c%c%c\n", 
         board->castlePermission & wk ? 'K' : '-',
@@ -212,5 +212,5 @@ void print_bitboard(u64 bitboard, int current_pos){
         printf("\n");
     }
     printf("\n    A  B  C  D  E  F  G  H\n\n");
-    printf("Value: %lu\n\n", bitboard);
+    printf("Value: %"PRIu64"\n\n", bitboard);
 }

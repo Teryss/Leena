@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <x86intrin.h>
 
+#ifdef _WIN32
+#define formatU64 "%llu"
+#else
+#define formatU64 "%lu"
+#endif
+
 #define PURE __attribute__((pure))
 #define CONST __attribute__((const))
 #define INLINE __attribute__((always_inline)) inline
@@ -50,6 +56,7 @@ enum move_type{
     CAPTURE, EP_CAPTURE,
     CAPTURE_PROMOTION_N, CAPTURE_PROMOTION_B, CAPTURE_PROMOTION_R, CAPTURE_PROMOTION_Q
 };
+typedef enum { GENERATE_ALL, GENERATE_CAPTURES } GenType;
 typedef enum __attribute__((__packed__)){
     NODE_NONE, NODE_EXACT, NODE_UPPER, NODE_LOWER
 }Node;
@@ -207,6 +214,19 @@ INLINE u64 get_bishop_attacks(u64 occupancy, const uint square){
 
 INLINE u64 get_queen_attacks(u64 occupancy, const uint square){
     return get_bishop_attacks(occupancy, square) | get_rook_attacks(occupancy, square);
+}
+
+INLINE void generate(const S_Board* const board, S_Moves* Moves, GenType WhatToGenerate){
+    switch (WhatToGenerate) {
+        case GENERATE_ALL:
+            generateMoves(board, Moves);
+            filter_illegal(board, Moves);
+            break;
+        case GENERATE_CAPTURES:
+            generateOnlyCaptures(board, Moves);
+            filter_illegal(board, Moves);
+            break;
+    }
 }
 
 #endif
