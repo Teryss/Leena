@@ -31,26 +31,6 @@ const uint CASTLING_CHANGE_ON_MOVE[64] = {
     15, 15, 15, 15, 15, 15, 15, 15,
     bk + bq + wk, 15, 15, 15, bq + bk, 15, 15, bk + bq + wq,
 };
-
-static uint get_next_space_FEN(const char * FEN, uint current_index, uint lenght){
-    uint index = current_index;
-    for (; index < lenght; index++){
-        if (FEN[index] == ' '){
-            return index;
-        }
-    }
-    return index;
-}
-
-static uint pow_of_ten(uint multp){
-    uint res = 1;
-    while (multp) {
-        res *= 10;
-        multp--;
-    }
-    return res;
-}
-
 static inline uint color(char c){
     if (c >= 'A' && c <= 'Z')
         return WHITE;
@@ -93,6 +73,7 @@ uint load_fen(S_Position* Pos, const char* const FEN){
                 break;
             case fenCastlePermission:
                 switch (*start) {
+                    case '-':   continue; 
                     case 'k':   Pos->castlePermission |= bk; break;
                     case 'K':   Pos->castlePermission |= wk; break;
                     case 'q':   Pos->castlePermission |= bq; break;
@@ -145,12 +126,9 @@ void reset(S_Position* pos){
     pos->sideToMove = 0;
     pos->ply = 0;
     pos->fiftyMovesCounter = 0;
-    // 9 -> desired overflow, 6 bitboards for pieces, 3 for color
-    for (int i = 0; i < 9; i++){
-        pos->Board->piecesBB[i] = 0;
-    }
-    pos->Board->hash = 0;
+    memset(pos->Board->piecesBB, 0, sizeof(u64) * 9);
     memset(pos->Board->pieceSet, 0, sizeof(char) * 64);
+    pos->Board->hash = 0;
 }
 
 
@@ -179,7 +157,7 @@ void print_board(S_Position* Pos){
         printf("\n");
     }
 
-    printf("\n    A  B  C  D  E  F  G  H\n\n");
+    printf("\n   A  B  C  D  E  F  G  H\n\n");
     printf("Hash: %"PRIx64"\n",Pos->Board->hash);
     printf("En passant square: %s\n", Pos->enPassantSquare == 0 ? "-" : squares_int_to_chr[Pos->enPassantSquare]);
     printf("Castling rights: %c%c%c%c\n", 
@@ -192,14 +170,11 @@ void print_board(S_Position* Pos){
     printf("Half moves total: %d\n", Pos->ply);
 }
 
-void print_bitboard(u64 bitboard, int current_pos){
+void print_bitboard(u64 bitboard){
     for (int r = 0; r < 8; r++){
         printf("%d  ", 8 - r);
         for (int c = 0; c < 8; c++){
-            if (ROW_COL_TO_SQR(r, c) == current_pos) { printf(" O "); }
-            else{
-                printf(" %c ", (GET_BIT(bitboard, ROW_COL_TO_SQR(r, c)) > 0 ? 'X' : '.'));
-            }
+            printf(" %c ", (GET_BIT(bitboard, ROW_COL_TO_SQR(r, c)) > 0 ? 'X' : '.'));
         }
         printf("\n");
     }

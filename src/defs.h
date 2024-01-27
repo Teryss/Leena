@@ -4,12 +4,6 @@
 #include <stdint.h>
 #include <x86intrin.h>
 
-#ifdef _WIN32
-#define formatU64 "%llu"
-#else
-#define formatU64 "%lu"
-#endif
-
 #define PURE __attribute__((pure))
 #define CONST __attribute__((const))
 #define INLINE __attribute__((always_inline)) inline
@@ -17,8 +11,9 @@
 #define SET_BIT(bb, n) (bb |= (1ULL << n))
 #define GET_BIT(bb, n) (bb & (1ULL << n))
 #define CLEAR_BIT(bb, n) (bb &= ~(1ULL << n))
-#define CLEAR_LEAST_SIGNIFICANT_BIT(bb) (bb &= (bb - 1))
-#define MORE_THAN_ONE(bb) (bb & (bb - 1))
+// #define CLEAR_LEAST_SIGNIFICANT_BIT(bb) (bb &= (bb - 1))
+#define CLEAR_LEAST_SIGNIFICANT_BIT(bb) (bb = _blsr_u64(bb))
+#define MORE_THAN_ONE(bb) (_blsr_u64(bb))
 #define COUNT_BITS(bb) (_popcnt64(bb))
 #define PEXT(src, mask) (_pext_u64(src, mask))
 #define GET_LEAST_SIGNIFICANT_BIT_INDEX(bb) (_tzcnt_u64(bb))
@@ -71,6 +66,7 @@ typedef struct{
 typedef struct{
     S_Board* Board;
     uint ply;
+    u16 stateHistory[MAX_GAME_SIZE];
     u8 enPassantSquare;
     u8 castlePermission;
     u8 fiftyMovesCounter;
@@ -124,7 +120,7 @@ extern void init_bb();
 extern uint load_fen(S_Position* Pos, const char* const FEN);
 extern void reset(S_Position* pos);
 extern void print_board(S_Position* pos);
-extern void print_bitboard(u64 bitboard, int current_pos);
+extern void print_bitboard(u64 bitboard);
 extern void update_occupied_squares(S_Board* board); 
 
 extern const char* pieces_int_to_chr;
@@ -157,22 +153,24 @@ extern const int16_t* PIECE_SQUARE_BONUS[6];
 // movegen.c
 #define GET_PIECE_FAILED_FLAG 15
 #define MOVE_FROM_SQUARE(move) (move & 0b111111U)
-#define MOVE_TO_SQUARE(move) ((move & (0b111111UL << 6U)) >> 6)
-#define MOVE_GET_FLAG(move) ((move & (0b1111UL << 12U)) >> 12)
+#define MOVE_TO_SQUARE(move) ((move & (0b111111UL << 6UL)) >> 6)
+#define MOVE_GET_FLAG(move) ((move & (0b1111UL << 12UL)) >> 12)
 
 extern void generateMoves(const S_Position* const Pos, S_Moves* Moves);
 extern void generateOnlyCaptures(const S_Position* const Pos, S_Moves* Moves);
 // extern CONST u16 encode_state(const S_Board* const Board);
 // extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
-extern void print_moves(S_Moves* Moves);
-extern void print_move(u32 move);
+extern void print_moves(S_Position* Pos, S_Moves* Moves);
+extern void print_move(S_Position* Pos, u16 move);
 extern PURE u8 is_king_attacked(const S_Position* const Pos);
 extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 
 // perft.c
-extern void perft_suite(S_Board* Board);
-extern u64 perft(S_Board* Board, uint depth);
-extern void make_move(S_Position* Pos, u16 move);
+extern void perft_suite(S_Position* Pos);
+extern u64 perft(S_Position* Pos, uint depth);
+extern u8 make_move(S_Position* Pos, u16 move);
+extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
+extern u16 encode_state(S_Position* Pos);
 
 // search.c
 extern u64 total_nodes_searched;

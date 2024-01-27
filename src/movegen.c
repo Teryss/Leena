@@ -65,15 +65,18 @@ static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, u6
     while(bb){
         from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
         CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        // printf("=========== before nigga =============\n");
+        // print_bitboard(get_attacks(Pos->Board->colorBB[BOTH], pieceType, from_square), NO_SQR);
         attack_bb = get_attacks(Pos->Board->colorBB[BOTH], pieceType, from_square) & empty_or_enemy;
 
         while(attack_bb){
             to_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if ((1ULL << to_square) & ~(Pos->Board->colorBB[BOTH])){
-                Moves->moves[Moves->count++] = encode_move(from_square, to_square, QUIET);
-            }else{
+            // printf("Nigga\n");
+            if (sqrs[to_square] & Pos->Board->colorBB[1 - Pos->sideToMove]){
                 Moves->moves[Moves->count++] = encode_move(from_square, to_square, CAPTURE);
+            }else{
+                Moves->moves[Moves->count++] = encode_move(from_square, to_square, QUIET);
             }
         }
     }
@@ -221,6 +224,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     _generate_all(Pos, Moves, empty_or_enemy, q);
 
     bb = Pos->Board->piecesBB[k] & us();
+    if (!bb) return;
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
     CLEAR_LEAST_SIGNIFICANT_BIT(bb);
     attack_bb = (Masks.king[from_square] & empty_or_enemy);
@@ -229,10 +233,10 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
         // if (square_attackers(board, to_sqr))
         //     continue;
-        if ((1ULL << to_sqr) & ~(Pos->Board->colorBB[BOTH])){
-            Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, QUIET);
-        }else{
+        if (sqrs[to_sqr] & Pos->Board->colorBB[1 - Pos->sideToMove]){
             Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE);
+        }else{
+            Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, QUIET);
         }
     }
 
