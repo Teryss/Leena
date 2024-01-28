@@ -34,9 +34,8 @@ int main(){
     S_Board Board;
     S_Position Pos = {.Board = &Board};
     init_all();
-    reset(&Pos);
-    uint err = load_fen(&Pos, "r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
+    uint err = load_fen(&Pos, "r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
@@ -50,11 +49,11 @@ int main(){
     generateMoves(&Pos, &Moves);
     u16 state = encode_state(&Pos);
     u8 capturePiece;
-    for (int i = 0; i < 5; i++){
+    for (int i = 0; i < 1; i++){
         printf("Index: %i ", i);
-        print_move(&Pos, Moves.moves[i]);
+        print_move(Pos.Board, Moves.moves[i]);
         capturePiece = make_move(&Pos, Moves.moves[i]);
-        // print_board(&Pos);
+        print_board(&Pos);
         undo_move(&Pos, Moves.moves[i], state, capturePiece);
         comparePositions(&Pos, PosCopy);
     }
@@ -93,8 +92,8 @@ int main(){
 
     // perft_suite(&Board);
 
-    free(PosCopy);
-    free(BoardCopy);
+    // free(PosCopy);
+    // free(BoardCopy);
     // free(TTable.entries);
 }
 

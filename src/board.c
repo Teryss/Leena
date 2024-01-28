@@ -4,10 +4,6 @@
 #include "defs.h"
 
 const char* pieces_int_to_chr = "pnbrqkPNBRQK-";
-// const int piece_chr_to_int[] = {
-//     ['p'] = 0, ['n'] = 1, ['b'] = 2, ['r'] = 3, ['q'] = 4, ['k'] = 5,
-//     ['P'] = 6, ['N'] = 7, ['B'] = 8, ['R'] = 9, ['Q'] = 10, ['K'] = 11
-// };
 
 const char squares_int_to_chr[65][3] = {
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
@@ -59,7 +55,7 @@ uint load_fen(S_Position* Pos, const char* const FEN){
                     sqr += *start - '0'; 
                     continue;
                 }
-                Pos->Board->pieceSet[sqr] = *start;
+                Pos->Board->pieceSet[sqr] = pieceChrToInt(*start);
                 SET_BIT(Pos->Board->piecesBB[pieceChrToInt(*start)], sqr);
                 SET_BIT(Pos->Board->colorBB[color(*start)], sqr);
                 sqr++;
@@ -127,24 +123,9 @@ void reset(S_Position* pos){
     pos->ply = 0;
     pos->fiftyMovesCounter = 0;
     memset(pos->Board->piecesBB, 0, sizeof(u64) * 9);
-    memset(pos->Board->pieceSet, 0, sizeof(char) * 64);
+    memset(pos->Board->pieceSet, NO_PIECE, sizeof(char) * 64);
     pos->Board->hash = 0;
 }
-
-
-/*
-    This function is only used while parsing FEN string. It's too slow for usage during a search.
-    After manually updating occupied squares in making/unmaking move functions, there is ~22% speedup!
-*/
-// void update_occupied_squares(S_Board* board) {
-//     uint piece;
-//     memset(board->colorBB, 0, sizeof(u64) * 3);
-
-//     for (piece = 0; piece < 6; piece++){ board->occupied_squares_by[BLACK] |= board->pieces[piece]; }
-//     for (piece = 6; piece < 12; piece++){ board->occupied_squares_by[WHITE] |= board->pieces[piece]; }
-    
-//     board->occupied_squares_by[BOTH] = board->occupied_squares_by[BLACK] | board->occupied_squares_by[WHITE];
-// }
 
 void print_board(S_Position* Pos){
     for (int r = 0; r < 8; r++){
@@ -152,7 +133,10 @@ void print_board(S_Position* Pos){
 
         for (int c = 0; c < 8; c++){
             printf(" %c ", 
-                Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] ? Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] : '.');
+                pieces_int_to_chr[
+                    Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] + (Pos->Board->colorBB[WHITE] & sqrs[ROW_COL_TO_SQR(r, c)] ? 6 : 0)
+                ]
+            );
         }
         printf("\n");
     }

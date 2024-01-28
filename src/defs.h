@@ -121,10 +121,8 @@ extern uint load_fen(S_Position* Pos, const char* const FEN);
 extern void reset(S_Position* pos);
 extern void print_board(S_Position* pos);
 extern void print_bitboard(u64 bitboard);
-extern void update_occupied_squares(S_Board* board); 
 
 extern const char* pieces_int_to_chr;
-extern const int piece_chr_to_int[];
 extern const char squares_int_to_chr[65][3];
 extern const int castling_permission_by_square[64];
 
@@ -160,8 +158,8 @@ extern void generateMoves(const S_Position* const Pos, S_Moves* Moves);
 extern void generateOnlyCaptures(const S_Position* const Pos, S_Moves* Moves);
 // extern CONST u16 encode_state(const S_Board* const Board);
 // extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
-extern void print_moves(S_Position* Pos, S_Moves* Moves);
-extern void print_move(S_Position* Pos, u16 move);
+extern void print_moves(S_Board* Board, S_Moves* Moves);
+extern void print_move(S_Board* Board, u16 move);
 extern PURE u8 is_king_attacked(const S_Position* const Pos);
 extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 

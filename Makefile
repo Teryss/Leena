@@ -5,6 +5,10 @@ OMIT = -fomit-frame-pointer
 all:
 	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
 
+run:
+	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
+	./Leena
+
 debug:
 	$(CC) -Wall -o Leena -march=native -g ./src/*.c
 	
