@@ -167,33 +167,33 @@ extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 extern void perft_suite(S_Position* Pos);
 extern u64 perft(S_Position* Pos, uint depth);
 extern u8 make_move(S_Position* Pos, u16 move);
-extern void undo_move(S_Position* Pos, const u16 move, const u16 lastState, const u8 capturePiece);
+extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
 extern u16 encode_state(S_Position* Pos);
 
 // search.c
-// extern u64 total_nodes_searched;
-// extern S_Move search(S_Board* Board, uint depth);
+extern u64 total_nodes_searched;
+extern S_Move search(S_Board* Board, uint depth);
 
-// // eval.c
-// extern u32 killer_moves[MAX_GAME_SIZE][2];
-// extern i32 evaluate(S_Position* Pos);
-// extern void clear_killer_moves();
-// extern void sort_moves(S_Board* Board, S_Moves* Moves, uint ply);
-// extern void sort_captures(S_Board* Board, S_Moves* Moves);
+// eval.c
+extern u32 killer_moves[MAX_GAME_SIZE][2];
+extern i32 evaluate(S_Position* Pos);
+extern void clear_killer_moves();
+extern void sort_moves(S_Board* Board, S_Moves* Moves, uint ply);
+extern void sort_captures(S_Board* Board, S_Moves* Moves);
 
-// // ttable.c
-// extern S_TTable TTable;
-// extern u64 TT_squares_hash[12][64];
-// extern u64 TT_castling_rights_hash[16];
-// extern u64 TT_enpassant_hash[8];
-// extern u64 TT_side_to_move_hash;
-// extern void init_TT();
-// extern void hash_position(S_Board* Board);
+// ttable.c
+extern S_TTable TTable;
+extern u64 TT_squares_hash[12][64];
+extern u64 TT_castling_rights_hash[16];
+extern u64 TT_enpassant_hash[8];
+extern u64 TT_side_to_move_hash;
+extern void init_TT();
+extern void hash_position(S_Board* Board);
 
-// extern u64 pins(const S_Position* const Pos, u8 king_square);
+extern u64 pins(const S_Position* const Pos, u8 king_square);
 
 // uci.c
-// void uci_loop();
+void uci_loop();
 
 INLINE u64 get_rook_attacks(u64 occupancy, const uint square){
     return Masks.attacks[PEXT(occupancy, Masks.rook[square]) + ROOK_PEXT_OFFSET[square]];

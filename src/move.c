@@ -159,7 +159,7 @@ u8 make_move(S_Position* Pos, u16 move){
         default:
             __builtin_unreachable();
     }
-    if (Pos->sideToMove != 1 - enemy)
+    if (1 - Pos->sideToMove != enemy)
         __builtin_unreachable();
 
     Pos->sideToMove = enemy;
@@ -171,7 +171,7 @@ u8 make_move(S_Position* Pos, u16 move){
     return pieceTypeTo;
 }
 
-void undo_move(S_Position* Pos, const u16 move, const u16 lastState, const u8 capturePiece){
+void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece){
     const u8 fromSqr = MOVE_FROM_SQUARE(move), toSqr = MOVE_TO_SQUARE(move);
     const u8 pieceTypeFrom = Pos->Board->pieceSet[toSqr];
     const u8 pieceTypeTo = capturePiece;
