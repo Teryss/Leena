@@ -65,14 +65,11 @@ static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, u6
     while(bb){
         from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
         CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-        // printf("=========== before nigga =============\n");
-        // print_bitboard(get_attacks(Pos->Board->colorBB[BOTH], pieceType, from_square), NO_SQR);
         attack_bb = get_attacks(Pos->Board->colorBB[BOTH], pieceType, from_square) & empty_or_enemy;
 
         while(attack_bb){
             to_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            // printf("Nigga\n");
             if (sqrs[to_square] & Pos->Board->colorBB[1 - Pos->sideToMove]){
                 Moves->moves[Moves->count++] = encode_move(from_square, to_square, CAPTURE);
             }else{
@@ -224,7 +221,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     _generate_all(Pos, Moves, empty_or_enemy, q);
 
     bb = Pos->Board->piecesBB[k] & us();
-    if (!bb) return;
+    // if (!bb) return;
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
     CLEAR_LEAST_SIGNIFICANT_BIT(bb);
     attack_bb = (Masks.king[from_square] & empty_or_enemy);
@@ -372,11 +369,12 @@ During move generation we use is_square_attacked and specify king's location
 
 // idk if us or enemy!
 PURE u8 is_king_attacked(const S_Position* const Pos){
-    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us());
+    const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & enemy());
     if (get_rook_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & us()) return 1;
     if (get_bishop_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & us()) return 1;
     if (Masks.knight[square] & Pos->Board->piecesBB[n] & us()) return 1;
-    if (Masks.pawn_attacks[Pos->sideToMove][square] & Pos->Board->piecesBB[p] & us()) return 1;
-    if (Masks.pawn_attacks[Pos->sideToMove^1][square] & Pos->Board->piecesBB[p] & us()) return 1;
+    if (Masks.pawn_attacks[1 - Pos->sideToMove][square] & Pos->Board->piecesBB[p] & us()) return 1;
+    if (Masks.king[square] & Pos->Board->piecesBB[k] & us()) return 1;
+    // if (Masks.pawn_attacks[us()][square] & Pos->Board->piecesBB[p] & us()) return 1;
     return 0;
 }

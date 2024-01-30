@@ -80,12 +80,14 @@ uint load_fen(S_Position* Pos, const char* const FEN){
             case fenEnPassant:
                 if (*start == '-')
                     Pos->enPassantSquare = 0;
-                else if (*start + 1 != ' ' && *start + 2 == ' '){
+                else if (*(start + 1) != ' ' && *(start + 2) == ' '){
                     Pos->enPassantSquare = ROW_COL_TO_SQR(
                         (8 - (int)(*(start + 1) - '0')), 
                         (*start - 'a')
                     );
+                    fenPart++;
                 }else{
+                    return WRONG_EN_PASSANT;
                 }
                 break;
             case fenFiftyMoves:

@@ -35,65 +35,12 @@ int main(){
     S_Position Pos = {.Board = &Board};
     init_all();
 
-    uint err = load_fen(&Pos, "r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    uint err = load_fen(&Pos, "n1n5/PPP5/2k5/8/8/3K4/5ppp/5N1N b - - 2 2");
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
-    S_Position* PosCopy = malloc(sizeof(S_Position));
-    memcpy(PosCopy, &Pos, sizeof(S_Position));
-    S_Board* BoardCopy = malloc(sizeof(S_Board));
-    memcpy(BoardCopy, Pos.Board, sizeof(S_Board));
-    PosCopy->Board = BoardCopy;
+    perft_suite(&Pos);
 
-    S_Moves Moves;
-    generateMoves(&Pos, &Moves);
-    u16 state = encode_state(&Pos);
-    u8 capturePiece;
-    for (int i = 0; i < 1; i++){
-        printf("Index: %i ", i);
-        print_move(Pos.Board, Moves.moves[i]);
-        capturePiece = make_move(&Pos, Moves.moves[i]);
-        print_board(&Pos);
-        undo_move(&Pos, Moves.moves[i], state, capturePiece);
-        comparePositions(&Pos, PosCopy);
-    }
-
-    print_board(&Pos);
-    // for (int i = 0; i < 64; i++){
-    //     if (Pos.Board->pieceSet[i] != PosCopy->Board->pieceSet[i]){
-    //         printf("Square: %s, Is [%c:%i], should be [%c:%i]\n", squares_int_to_chr[i], Pos.Board->pieceSet[i], Pos.Board->pieceSet[i], PosCopy->Board->pieceSet[i], PosCopy->Board->pieceSet[i]);
-    //     }
-    // }
-
-    for (int i = 0; i < 6; i++){
-        if (Pos.Board->piecesBB[i] != PosCopy->Board->piecesBB[i]){
-            printf("Piece: %c\n", pieces_int_to_chr[i]);
-            print_bitboard(Pos.Board->piecesBB[i]);
-            print_bitboard(PosCopy->Board->piecesBB[i]);
-        }
-    }
-
-    // u8 capturePiece = make_move(&Pos, Moves.moves[1]);
-    // undo_move(&Pos, Moves.moves[1], state, capturePiece);
-    // comparePositions(&Pos, PosCopy);
-
-    // print_moves(&Pos, &Moves);
-
-    // make_move(&Pos, Moves.moves[0]);
-    // printf("####################################################\n");
-    // print_bitboard(Pos.Board->colorBB[WHITE], NO_SQR);
-    // print_bitboard(Pos.Board->colorBB[BLACK], NO_SQR);
-    // print_bitboard(Pos.Board->colorBB[BOTH], NO_SQR);
-    // print_board(&Pos);
-    // print_bitboard(u64 bitboard, int current_pos)
-    // init_all();
-    // load_fen(&Board, "k2r4/8/7q/b7/5B2/8/3K4/8 w - - 0 1");
-    // load_fen(&Board, "k7/8/8/8/4B3/8/2rK4/8 w - - 0 1");
-
-    // perft_suite(&Board);
-
-    // free(PosCopy);
-    // free(BoardCopy);
     // free(TTable.entries);
 }
 
