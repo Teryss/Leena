@@ -9,6 +9,9 @@ run:
 	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
 	./Leena
 
+profile:
+	$(CC)  -g -pg -o Leena $(OPTIONS) ./src/*.c
+
 debug:
 	$(CC) -Wall -o Leena -march=native -g ./src/*.c
 	
