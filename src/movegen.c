@@ -58,7 +58,7 @@ static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     }
 }
 
-static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, u64 empty_or_enemy, u8 pieceType){
+static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, const u64 empty_or_enemy, const u8 pieceType){
     u64 bb = Pos->Board->piecesBB[pieceType] & us(), attack_bb;
     u8 from_square, to_square;
 
@@ -70,7 +70,7 @@ static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, u6
         while(attack_bb){
             to_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if (sqrs[to_square] & Pos->Board->colorBB[1 - Pos->sideToMove]){
+            if (Pos->Board->pieceSet[to_square] != NO_PIECE){
                 Moves->moves[Moves->count++] = encode_move(from_square, to_square, CAPTURE);
             }else{
                 Moves->moves[Moves->count++] = encode_move(from_square, to_square, QUIET);
@@ -79,7 +79,7 @@ static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, u6
     }
 }
 
-static inline void _generate_captures(const S_Position* const Pos, S_Moves* Moves, u8 pieceType){
+static inline void _generate_captures(const S_Position* const Pos, S_Moves* Moves, const u8 pieceType){
     u64 bb = Pos->Board->piecesBB[pieceType] & us(), attack_bb;
     u8 from_square, to_square;
 
@@ -230,7 +230,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
         // if (square_attackers(board, to_sqr))
         //     continue;
-        if (sqrs[to_sqr] & Pos->Board->colorBB[1 - Pos->sideToMove]){
+        if (Pos->Board->pieceSet[to_sqr] != NO_PIECE){
             Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE);
         }else{
             Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, QUIET);

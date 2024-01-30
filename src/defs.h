@@ -158,18 +158,20 @@ extern void generateMoves(const S_Position* const Pos, S_Moves* Moves);
 extern void generateOnlyCaptures(const S_Position* const Pos, S_Moves* Moves);
 // extern CONST u16 encode_state(const S_Board* const Board);
 // extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
-extern void print_moves(S_Board* Board, S_Moves* Moves);
-extern void print_move(S_Board* Board, u16 move);
 extern PURE u8 is_king_attacked(const S_Position* const Pos);
 extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
+
+// move.c
+extern u8 make_move(S_Position* Pos, u16 move);
+extern void restore_state(S_Position* Pos, u16 state);
+extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
+extern u16 encode_state(S_Position* Pos);
+extern void print_moves(S_Board* Board, S_Moves* Moves);
+extern void print_move(S_Board* Board, u16 move);
 
 // perft.c
 extern void perft_suite(S_Position* Pos);
 extern u64 perft(S_Position* Pos, uint depth);
-extern u8 make_move(S_Position* Pos, u16 move);
-extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
-extern u16 encode_state(S_Position* Pos);
-
 // search.c
 extern u64 total_nodes_searched;
 extern S_Move search(S_Board* Board, uint depth);

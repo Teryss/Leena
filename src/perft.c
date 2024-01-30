@@ -49,7 +49,7 @@ u64 perft(S_Position* Pos, uint depth){
     u64 nodes = 0ULL, current_nodes;
 
     S_Moves Moves;
-    S_Board Board_copy;
+    // S_Board Board_copy;
     generateMoves(Pos, &Moves);
     // memcpy(&Board_copy, Board, sizeof(S_Board));
     printf("Nodes searched per move - depth: %u\n", depth);
@@ -98,18 +98,23 @@ u64 run_perft(S_Position* Pos, uint depth){
     u64 nodes = 0ULL;
     S_Moves Moves;
     S_Board Board_copy;
+    memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
     generateMoves(Pos, &Moves);
-
-    u8 capturePiece;
+    // u8 capturePiece;
     u16 state = encode_state(Pos);
+    
     for (int i = 0; i < Moves.count; i++){
-        capturePiece = make_move(Pos, Moves.moves[i]);
+        // capturePiece = make_move(Pos, Moves.moves[i]);
+        make_move(Pos, Moves.moves[i]);
         
         if (!(is_king_attacked(Pos))){
             nodes += run_perft(Pos, depth - 1);
         }
 
-        undo_move(Pos, Moves.moves[i], state, capturePiece);
+        memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
+        restore_state(Pos, state);
+        Pos->sideToMove = 1 - Pos->sideToMove;
+        // undo_move(Pos, Moves.moves[i], state, capturePiece);
     }
 
     return nodes;

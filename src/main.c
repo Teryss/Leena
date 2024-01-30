@@ -9,8 +9,8 @@
 S_Masks Masks;
 
 // void init_all();
-// void time_perft(S_Position* Pos, const char* FEN, int depth);
-// void time_search(S_Position* Pos, const char* FEN, int depth);
+void time_perft(S_Position* Pos, const char* FEN, int depth);
+// void times_search(S_Position* Pos, const char* FEN, int depth);
 void comparePositions(S_Position* Pos, S_Position* PreviousPosition);
 
 static inline const char* decodeFenError(u8 flag){
@@ -39,7 +39,8 @@ int main(){
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
-    perft_suite(&Pos);
+    // perft_suite(&Pos);
+    time_perft(&Pos, kiwipete, 5);
 
     // free(TTable.entries);
 }
@@ -73,15 +74,15 @@ void comparePositions(S_Position* Pos, S_Position* PreviousPosition){
     printf("====\n");
 }
 
-// void time_perft(S_Position* Pos, const char* FEN, int depth){
-//     load_fen(Pos, FEN);
-//     clock_t start = clock();
-//     u64 nodes = perft(Pos->Board, depth);
-//     clock_t end = clock();
-//     printf("Nodes searched: %"PRIu64"\n", nodes);
-//     printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
-//     printf("%0.2f MNodes/second\n", ((double)nodes / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
-// }
+void time_perft(S_Position* Pos, const char* FEN, int depth){
+    load_fen(Pos, FEN);
+    clock_t start = clock();
+    u64 nodes = perft(Pos, depth);
+    clock_t end = clock();
+    printf("Nodes searched: %"PRIu64"\n", nodes);
+    printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+    printf("%0.2f MNodes/second\n", ((double)nodes / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
+}
 
 // void time_search(S_Position* Pos, const char* FEN, int depth){
 //     load_fen(Pos, FEN);
