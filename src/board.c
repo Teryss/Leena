@@ -136,7 +136,7 @@ void print_board(S_Position* Pos){
         for (int c = 0; c < 8; c++){
             printf(" %c ", 
                 pieces_int_to_chr[
-                    Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] + (Pos->Board->colorBB[WHITE] & sqrs[ROW_COL_TO_SQR(r, c)] ? 6 : 0)
+                    Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] + (Pos->Board->colorBB[WHITE] & sqrs(ROW_COL_TO_SQR(r, c)) ? 6 : 0)
                 ]
             );
         }

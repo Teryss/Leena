@@ -35,13 +35,12 @@ int main(){
     S_Position Pos = {.Board = &Board};
     init_all();
 
-    uint err = load_fen(&Pos, "n1n5/PPP5/2k5/8/8/3K4/5ppp/5N1N b - - 2 2");
+    u8 err = load_fen(&Pos,"r3k2r/p1ppqpb1/bn1Ppnp1/4N3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
     // perft_suite(&Pos);
     time_perft(&Pos, kiwipete, 5);
-
     // free(TTable.entries);
 }
 

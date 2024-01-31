@@ -1,3 +1,6 @@
 # Ignore executables
-Leena
-Leena.exe
+Leena*
+*.py
+__*__
+*.data*
+*.out

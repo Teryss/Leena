@@ -3,6 +3,9 @@
 #include "defs.h"
 
 #define RANK_1 0xFFLLU
+#define RANK_2 (RANK_1 << (8 * 1))
+#define RANK_7 (RANK_1 << (8 * 6))
+#define RANK_8 (RANK_1 << (8 * 7))
 
 /* MOVE ENCODING - 16 bits
 
@@ -41,7 +44,7 @@ static INLINE u64 is_square_attacked_custom(const S_Position* const Pos, const u
     );
 }
 
-static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
+static NOINLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     switch (pieceType) {
         case b:
             return get_bishop_attacks(occupancy, square);
@@ -58,7 +61,7 @@ static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     }
 }
 
-static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, const u64 empty_or_enemy, const u8 pieceType){
+static NOINLINE void _generate_all(const S_Position* const Pos, S_Moves* Moves, const u64 empty_or_enemy, const u8 pieceType){
     u64 bb = Pos->Board->piecesBB[pieceType] & us(), attack_bb;
     u8 from_square, to_square;
 
@@ -79,7 +82,7 @@ static inline void _generate_all(const S_Position* const Pos, S_Moves* Moves, co
     }
 }
 
-static inline void _generate_captures(const S_Position* const Pos, S_Moves* Moves, const u8 pieceType){
+static NOINLINE void _generate_captures(const S_Position* const Pos, S_Moves* Moves, const u8 pieceType){
     u64 bb = Pos->Board->piecesBB[pieceType] & us(), attack_bb;
     u8 from_square, to_square;
 
@@ -93,6 +96,99 @@ static inline void _generate_captures(const S_Position* const Pos, S_Moves* Move
             CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
             Moves->moves[Moves->count++] = encode_move(from_square, to_square, CAPTURE);
         }
+    }
+}
+
+#define shift(bb, n) ((n) > 0 ? (bb) << (n) : (bb) >> -(n))
+
+static NOINLINE void generate_pawns(const S_Position* const Pos, S_Moves* Moves, const u8 color){
+    #define NOT_ON_A_FILE (18374403900871474942ULL)
+    #define NOT_ON_H_FILE (9187201950435737471ULL)
+
+    const u64 doublePushRank = color == WHITE ? RANK_7 : RANK_2;
+    const u64 promotionRank = color == WHITE ? RANK_2 : RANK_7;
+    const u64 lastRank = color == WHITE ? RANK_1 : RANK_8;
+    const int oneUp = color == WHITE ? -8 : 8; 
+    const int upRight = color == WHITE ? -7 : 9;
+    const int upLeft = color == WHITE ? -9 : 7;
+    const u64 doublePushMask = 4311744512ULL;
+
+    const u64 empty = ~Pos->Board->colorBB[BOTH];
+    const u64 origin_bb = Pos->Board->piecesBB[p] & us();
+
+    u64 bbAttacks_right, bbAttacks_left;
+    u64 bb;
+    u8 toSqr;
+
+    if (Pos->enPassantSquare){
+        u64 ep_bb = Masks.pawn_attacks[1 - Pos->sideToMove][Pos->enPassantSquare] & origin_bb;
+        if (ep_bb){
+            if (MORE_THAN_ONE(ep_bb)){
+                for (uint i = 0; i < 2; i++){
+                    toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(ep_bb);
+                    CLEAR_LEAST_SIGNIFICANT_BIT(ep_bb);
+                    Moves->moves[Moves->count++] = encode_move(toSqr, Pos->enPassantSquare, EP_CAPTURE);
+                }
+            }else{
+                Moves->moves[Moves->count++] = encode_move(GET_LEAST_SIGNIFICANT_BIT_INDEX(ep_bb), Pos->enPassantSquare, EP_CAPTURE);
+            }
+
+        }
+    }
+    bb = shift(origin_bb, oneUp) & empty & ~lastRank;
+    while (bb){
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        Moves->moves[Moves->count++] = encode_move(toSqr - oneUp, toSqr, QUIET);
+    }
+    bb = shift(origin_bb, oneUp) & empty & lastRank;
+    while (bb){
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        Moves->moves[Moves->count++] = encode_move(toSqr - oneUp, toSqr, PROMOTION_R);
+        Moves->moves[Moves->count++] = encode_move(toSqr - oneUp, toSqr, PROMOTION_Q);
+        Moves->moves[Moves->count++] = encode_move(toSqr - oneUp, toSqr, PROMOTION_N);
+        Moves->moves[Moves->count++] = encode_move(toSqr - oneUp, toSqr, PROMOTION_B);
+    }
+    bb = origin_bb & doublePushRank;
+    while (bb) {
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        if (MORE_THAN_ONE(empty & (sqrs(toSqr + oneUp) | sqrs(toSqr + 2 * oneUp))))
+            Moves->moves[Moves->count++] = encode_move(toSqr, toSqr + 2 * oneUp, DOUBLE_PUSH);
+    }
+    bbAttacks_right = shift(origin_bb & NOT_ON_H_FILE, upRight) & enemy();
+    bbAttacks_left = shift(origin_bb & NOT_ON_A_FILE, upLeft) & enemy();
+    bb = bbAttacks_right & lastRank;
+    while (bb) {
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upRight, toSqr, CAPTURE_PROMOTION_R);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upRight, toSqr, CAPTURE_PROMOTION_Q);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upRight, toSqr, CAPTURE_PROMOTION_N);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upRight, toSqr, CAPTURE_PROMOTION_B);
+    }
+    bb = bbAttacks_right & ~lastRank;
+    while (bb) {
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upRight, toSqr, CAPTURE);
+    }
+    bb = bbAttacks_left & lastRank;
+    
+    while (bb) {
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upLeft, toSqr, CAPTURE_PROMOTION_R);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upLeft, toSqr, CAPTURE_PROMOTION_Q);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upLeft, toSqr, CAPTURE_PROMOTION_N);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upLeft, toSqr, CAPTURE_PROMOTION_B);
+    }
+    bb = bbAttacks_left & ~lastRank;
+    while (bb) {
+        toSqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
+        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
+        Moves->moves[Moves->count++] = encode_move(toSqr - upLeft, toSqr, CAPTURE);
     }
 }
 
@@ -160,60 +256,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
 
     uint from_square, to_sqr;
     Moves->count = 0;
-
-    bb = Pos->Board->piecesBB[p] & us();
-    if (Pos->enPassantSquare){
-        u64 ep_bb = Masks.pawn_attacks[enemy_color][Pos->enPassantSquare] & bb;
-        if (ep_bb){
-            if (MORE_THAN_ONE(ep_bb)){
-                for (uint i = 0; i < 2; i++){
-                    from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(ep_bb);
-                    CLEAR_LEAST_SIGNIFICANT_BIT(ep_bb);
-                    Moves->moves[Moves->count++] = encode_move(from_square, Pos->enPassantSquare, EP_CAPTURE);
-                }
-            }else{
-                Moves->moves[Moves->count++] = encode_move(GET_LEAST_SIGNIFICANT_BIT_INDEX(ep_bb), Pos->enPassantSquare, EP_CAPTURE);
-            }
-
-        }
-    }
-    while(bb){
-        from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-        CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-
-        uint temp_square = from_square + 8 - 16 * enemy_color;
-        if(!(Pos->Board->colorBB[BOTH] & (1ULL << temp_square))){
-            if ((GET_BIT((RANK_1 << 8ULL), from_square) && Pos->sideToMove == WHITE) || (GET_BIT((RANK_1 << 48ULL), from_square) && Pos->sideToMove == BLACK)){
-                Moves->moves[Moves->count++] = encode_move(from_square, temp_square, PROMOTION_R);
-                Moves->moves[Moves->count++] = encode_move(from_square, temp_square, PROMOTION_Q);
-                Moves->moves[Moves->count++] = encode_move(from_square, temp_square, PROMOTION_N);
-                Moves->moves[Moves->count++] = encode_move(from_square, temp_square, PROMOTION_B);
-            }else{
-                Moves->moves[Moves->count++] = encode_move(from_square, temp_square, QUIET);
-
-                temp_square += 8 - 16 * enemy_color;
-                if((1ULL << from_square) & RANK_1 << (u64)(8 + (40 * enemy_color))){
-                    if (!(Pos->Board->colorBB[BOTH] & (1ULL << temp_square))){
-                        Moves->moves[Moves->count++] = encode_move(from_square, (from_square + 16 - 32 * enemy_color), DOUBLE_PUSH);
-                    }
-                }
-            }
-        }
-
-        attack_bb = Masks.pawn_attacks[Pos->sideToMove][from_square] & enemy();
-        while(attack_bb){
-            to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
-            CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if ((GET_BIT((RANK_1 << 8ULL), from_square) && Pos->sideToMove == WHITE) || (GET_BIT((RANK_1 << 48ULL), from_square) && Pos->sideToMove == BLACK)){
-                Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE_PROMOTION_R);
-                Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE_PROMOTION_Q);
-                Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE_PROMOTION_N);
-                Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE_PROMOTION_B);
-            }else{
-                Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE);
-            }
-        }
-    }
+    generate_pawns(Pos, Moves, Pos->sideToMove);
 
     _generate_all(Pos, Moves, empty_or_enemy, n);
     _generate_all(Pos, Moves, empty_or_enemy, b);
@@ -261,8 +304,8 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
 
 u64 pins(const S_Position* const Pos, u8 king_square){
     u64 xRayAttackers = (
-        (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & us() & get_rook_attacks(0, king_square) | 
-        (Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & us() & get_bishop_attacks(0, king_square)
+        ((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & us() & get_rook_attacks(0, king_square)) | 
+        ((Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & us() & get_bishop_attacks(0, king_square))
     );
     u64 pins = 0ULL, possible_pins;
     u8 attacker_square;
@@ -291,7 +334,7 @@ u64 pins(const S_Position* const Pos, u8 king_square){
         
 //         if (is_square_attacked_custom(
 //                 Pos,
-//                 Pos->Board->colorBB[BOTH] ^ sqrs[kingSquare],
+//                 Pos->Board->colorBB[BOTH] ^ sqrs(kingSquare],
 //                 to_square)){    
 //             return 0;
 //         }
@@ -309,17 +352,17 @@ u64 pins(const S_Position* const Pos, u8 king_square){
 //             // check if captures wit king work properly
 //             if (is_square_attacked_custom(
 //                     Pos,
-//                     Pos->Board->colorBB[BOTH] ^ sqrs[kingSquare],
+//                     Pos->Board->colorBB[BOTH] ^ sqrs(kingSquare],
 //                     to_square))  
 //                 return 0;
     
 //             return 1;
 //         }else{
 //             // is already pinned
-//             if (sqrs[from_square] & _pin)
+//             if (sqrs(from_square] & _pin)
 //                 return 0;
 //             // blocks or captures
-//             if (sqrs[to_square] & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
+//             if (sqrs(to_square] & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
 //                 return 1;
 //             return 0;
 //         }
@@ -332,8 +375,8 @@ u64 pins(const S_Position* const Pos, u8 king_square){
 //         // todo
 //         return 0;
 
-//     if (_pin & sqrs[from_square]){
-//         return line[kingSquare][from_square] & sqrs[to_square];
+//     if (_pin & sqrs(from_square]){
+//         return line[kingSquare][from_square] & sqrs(to_square];
 //     }
 
 //     return 1;
@@ -347,7 +390,7 @@ u64 pins(const S_Position* const Pos, u8 king_square){
 //     const u64 isInCheck = square_attackers(Pos, king_square);
 
 //     // printf("-- KS: %s ; isInCheck: %llu, pins:\n", squares_int_to_chr[king_square], isInCheck);
-//     // print_bitboard(board->occupied_squares_by[BOTH] ^ sqrs[king_square], NO_SQR);
+//     // print_bitboard(board->occupied_squares_by[BOTH] ^ sqrs(king_square], NO_SQR);
 
 //     u16* lastMove = Moves->moves;
 

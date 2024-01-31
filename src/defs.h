@@ -8,6 +8,8 @@
 #define CONST __attribute__((const))
 #define INLINE __attribute__((always_inline)) inline
 
+#define NOINLINE __attribute__((noinline))
+
 #define SET_BIT(bb, n) (bb |= (1ULL << n))
 #define GET_BIT(bb, n) (bb & (1ULL << n))
 #define CLEAR_BIT(bb, n) (bb &= ~(1ULL << n))
@@ -17,6 +19,7 @@
 #define COUNT_BITS(bb) (_popcnt64(bb))
 #define PEXT(src, mask) (_pext_u64(src, mask))
 #define GET_LEAST_SIGNIFICANT_BIT_INDEX(bb) (_tzcnt_u64(bb))
+#define sqrs(sqr) (1ULL << (sqr))
 
 #define ROW_COL_TO_SQR(row, col) (row * 8 + col)
 #define MAX_GAME_SIZE 2048
@@ -109,7 +112,7 @@ extern S_Masks Masks;
 void init_all();
 
 // bitboards.c
-extern u64 sqrs[64];
+// extern u64 sqrs[64];
 extern u64 between[64][64];
 extern u64 line[64][64];
 extern u64 ranks[8];
@@ -162,8 +165,12 @@ extern PURE u8 is_king_attacked(const S_Position* const Pos);
 extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 
 // move.c
+#define GET_CASTLE_PERM(state) (state & 0b1111)
+#define GET_FIFTY_MOVES_COUNTER(state) ((state >> 4) & 0b111111)
+#define GET_EN_PASSANT_SQR(state) (state >> 10)
+
 extern u8 make_move(S_Position* Pos, u16 move);
-extern void restore_state(S_Position* Pos, u16 state);
+// extern void restore_state(S_Position* Pos, u16 state);
 extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
 extern u16 encode_state(S_Position* Pos);
 extern void print_moves(S_Board* Board, S_Moves* Moves);
@@ -209,18 +216,18 @@ INLINE u64 get_queen_attacks(u64 occupancy, const uint square){
     return get_bishop_attacks(occupancy, square) | get_rook_attacks(occupancy, square);
 }
 
-INLINE void generate(const S_Position* const Pos, S_Moves* Moves, GenType WhatToGenerate){
-    switch (WhatToGenerate) {
-        case GENERATE_ALL:
-            generateMoves(Pos, Moves);
-            filter_illegal(Pos, Moves);
-            break;
-        case GENERATE_CAPTURES:
-            generateOnlyCaptures(Pos, Moves);
-            filter_illegal(Pos, Moves);
-            break;
-    }
-}
+// INLINE void generate(const S_Position* const Pos, S_Moves* Moves, GenType WhatToGenerate){
+//     switch (WhatToGenerate) {
+//         case GENERATE_ALL:
+//             generateMoves(Pos, Moves);
+//             filter_illegal(Pos, Moves);
+//             break;
+//         case GENERATE_CAPTURES:
+//             generateOnlyCaptures(Pos, Moves);
+//             filter_illegal(Pos, Moves);
+//             break;
+//     }
+// }
 
 INLINE u8 pieceChrToInt(char pieceChr){
     switch (pieceChr){
@@ -245,6 +252,12 @@ INLINE u8 pieceChrToInt(char pieceChr){
         default:
             return 15;
     }
+}
+
+INLINE void restore_state(S_Position* Pos, u16 state){
+    Pos->enPassantSquare = GET_EN_PASSANT_SQR(state);
+    Pos->castlePermission = GET_CASTLE_PERM(state);
+    Pos->fiftyMovesCounter = GET_FIFTY_MOVES_COUNTER(state);
 }
 
 #endif
