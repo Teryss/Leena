@@ -30,8 +30,8 @@ static INLINE u64 square_attackers(const S_Position* const Pos, const uint squar
     return (u64)(
         (get_rook_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) |
         (get_bishop_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) |
-        (Masks.knight[square] & Pos->Board->piecesBB[n] & enemy()) |
-        (Masks.pawn_attacks[Pos->sideToMove][square] & Pos->Board->piecesBB[p] & enemy())
+        (Masks.knight[square] & (Pos->Board->piecesBB[n] & enemy())) |
+        (Masks.pawn_attacks[Pos->sideToMove][square] & (Pos->Board->piecesBB[p] & enemy()))
     );
 }
 
@@ -39,8 +39,8 @@ static INLINE u64 is_square_attacked_custom(const S_Position* const Pos, const u
     return (u64)(
         (get_rook_attacks(occ, square) & (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) |
         (get_bishop_attacks(occ, square) & (Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) |
-        (Masks.knight[square] & Pos->Board->piecesBB[n] & enemy()) |
-        (Masks.pawn_attacks[Pos->sideToMove][square] & Pos->Board->piecesBB[p] & enemy())
+        (Masks.knight[square] & (Pos->Board->piecesBB[n] & enemy())) |
+        (Masks.pawn_attacks[Pos->sideToMove][square] & (Pos->Board->piecesBB[p] & enemy()))
     );
 }
 
@@ -271,8 +271,8 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     while(attack_bb){
         to_sqr = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-        // if (square_attackers(board, to_sqr))
-        //     continue;
+        if (square_attackers(Pos, to_sqr))
+            continue;
         if (Pos->Board->pieceSet[to_sqr] != NO_PIECE){
             Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE);
         }else{
@@ -304,9 +304,10 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
 
 u64 pins(const S_Position* const Pos, u8 king_square){
     u64 xRayAttackers = (
-        ((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & us() & get_rook_attacks(0, king_square)) | 
-        ((Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & us() & get_bishop_attacks(0, king_square))
+        (((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) & get_rook_attacks(0, king_square)) | 
+        (((Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) & get_bishop_attacks(0, king_square))
     );
+    // print_bitboard(xRayAttackers);
     u64 pins = 0ULL, possible_pins;
     u8 attacker_square;
 
@@ -314,7 +315,10 @@ u64 pins(const S_Position* const Pos, u8 king_square){
         attacker_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(xRayAttackers);
         CLEAR_LEAST_SIGNIFICANT_BIT(xRayAttackers);
         
-        possible_pins = between[king_square][attacker_square] & us();
+        // print_bitboard(between[king_square][attacker_square]);
+        possible_pins = between[king_square][attacker_square] & Pos->Board->colorBB[BOTH];
+        // print_bitboard(possible_pins);
+        // printf("not more than 1 [%d][%lu][%llu]\n", possible_pins && !(MORE_THAN_ONE(possible_pins)), possible_pins, (MORE_THAN_ONE(possible_pins)));
         if (possible_pins && !(MORE_THAN_ONE(possible_pins))){
             pins |= possible_pins;
         }
@@ -322,87 +326,102 @@ u64 pins(const S_Position* const Pos, u8 king_square){
     return pins;
 }
 
-// u64 is_legal(const S_Position* Pos, u8 kingSquare, u32 Move, u64 _pin, u64 checkers) { 
-//     // return 0;
-//     u8 from_square = MOVE_GET_FROM_SQUARE(Move), to_square = MOVE_GET_TO_SQUARE(Move), pieceType = MOVE_GET_PIECE(Move);
+u64 is_legal(const S_Position* Pos, u8 kingSquare, u32 Move, u64 _pin, u64 checkers) { 
+    // return 0;
+    u8 from_square = MOVE_FROM_SQUARE(Move), to_square = MOVE_TO_SQUARE(Move);
 
 
-//     /* if it's a double check, a king has to move */
-//     if (MORE_THAN_ONE(checkers)){
-//         if (from_square != kingSquare)
-//             return 0;
+    /* if it's a double check, a king has to move */
+    if (MORE_THAN_ONE(checkers)){
+        if (from_square != kingSquare)
+            return 0;
         
-//         if (is_square_attacked_custom(
-//                 Pos,
-//                 Pos->Board->colorBB[BOTH] ^ sqrs(kingSquare],
-//                 to_square)){    
-//             return 0;
-//         }
-//         return 1;
-//     /* if it's a check we can:
-//         King:
-//             move a king
-//             capture attacking piece if it isn't protected
-//         Other:
-//             block a check
-//             capture attacking piece
-//     */
-//     }else if (checkers){
-//         if (from_square == kingSquare){
-//             // check if captures wit king work properly
-//             if (is_square_attacked_custom(
-//                     Pos,
-//                     Pos->Board->colorBB[BOTH] ^ sqrs(kingSquare],
-//                     to_square))  
-//                 return 0;
+        if (is_square_attacked_custom(
+                Pos,
+                Pos->Board->colorBB[BOTH] ^ sqrs(kingSquare),
+                to_square)){    
+            return 0;
+        }
+        return 1;
+    /* if it's a check we can:
+        King:
+            move a king
+            capture attacking piece if it isn't protected
+        Other:
+            block a check
+            capture attacking piece
+    */
+    }else if (checkers){
+        if (from_square == kingSquare){
+            // check if captures wit king work properly
+            if (is_square_attacked_custom(
+                    Pos,
+                    Pos->Board->colorBB[BOTH] ^ sqrs(kingSquare),
+                    to_square))  
+                return 0;
     
-//             return 1;
-//         }else{
-//             // is already pinned
-//             if (sqrs(from_square] & _pin)
-//                 return 0;
-//             // blocks or captures
-//             if (sqrs(to_square] & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
-//                 return 1;
-//             return 0;
-//         }
+            return 1;
+        }else{
+            // is already pinned
+            if (sqrs(from_square) & _pin)
+                return 0;
+            // blocks or captures
+            if (sqrs(to_square) & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
+                return 1;
+            return 0;
+        }
 
-//     }
+    }else{
+        /*  if there is no check, 
+        we only need to care about pins 
+        and en passant discover checks, which are a special case    */
+        if (MOVE_GET_FLAG(Move) == EP_CAPTURE){
+            // if our king is on the same line
+            // u64 kingSq;
+            if (Pos->Board->piecesBB[k] & us() & (RANK_1 << (from_square / 8) * 8)){
+                const u8 enemyPawnSq = to_square - 8 + 16 * Pos->sideToMove;
+                if (get_rook_attacks(Pos->Board->colorBB[BOTH] ^ sqrs(enemyPawnSq), kingSquare) 
+                    & (RANK_1 << (from_square / 8) * 8) 
+                    & ((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy())){
+                    return 0;
+                }
+                return 1;
+                print_bitboard(Pos->Board->piecesBB[k] & us() & (RANK_1 << (from_square / 8) * 8));
+            }
+            return 1;
+        }
 
+        if (_pin & sqrs(from_square)){
+            return line[kingSquare][from_square] & sqrs(to_square);
+        }
 
-//     /* if there is no check, we only need to care about pins and en passant discover checks*/
-//     if (MOVE_GET_FLAG(Move) == EP_CAPTURE)
-//         // todo
-//         return 0;
+        return 1;
+    }
+};
 
-//     if (_pin & sqrs(from_square]){
-//         return line[kingSquare][from_square] & sqrs(to_square];
-//     }
+void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
+    const u8 king_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us());
 
-//     return 1;
-// };
+    const u16* end = Moves->moves + Moves->count;
+    const u64 _pins = pins(Pos, king_square);
+    const u64 isInCheck = square_attackers(Pos, king_square);
 
-// void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
-//     u8 king_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us());
+    // printf("-- KS: %s ; isInCheck: %lu, pins:\n", squares_int_to_chr[king_square], isInCheck);
+    // print_bitboard(_pins);
+    u16* lastMove = Moves->moves;
 
-//     const u16* end = Moves->moves + Moves->count;
-//     const u64 _pins = pins(Pos, king_square);
-//     const u64 isInCheck = square_attackers(Pos, king_square);
-
-//     // printf("-- KS: %s ; isInCheck: %llu, pins:\n", squares_int_to_chr[king_square], isInCheck);
-//     // print_bitboard(board->occupied_squares_by[BOTH] ^ sqrs(king_square], NO_SQR);
-
-//     u16* lastMove = Moves->moves;
-
-//     for (u16* currentMove = Moves->moves; currentMove != end; currentMove++){
-//         if (!is_legal(Pos, king_square, *currentMove, _pins, isInCheck)){
-//             Moves->count--;
-//             continue;
-//         }
-//         *lastMove = *currentMove;
-//         lastMove++;
-//     }
-// }
+    int res = 0;
+    for (u16* currentMove = Moves->moves; currentMove != end; currentMove++){
+        if (!(res = is_legal(Pos, king_square, *currentMove, _pins, isInCheck))){
+            Moves->count--;
+            // printf("Is legal: %d\n", res);
+            // print_move(Pos->Board, *lastMove);
+            continue;
+        }
+        *lastMove = *currentMove;
+        lastMove++;
+    }
+}
 
 
 /*

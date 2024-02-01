@@ -51,6 +51,7 @@ u64 perft(S_Position* Pos, uint depth){
     S_Moves Moves;
     S_Board Board_copy;
     generateMoves(Pos, &Moves);
+    filter_illegal(Pos, &Moves);
     memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
     printf("Nodes searched per move - depth: %u\n", depth);
 
@@ -61,9 +62,9 @@ u64 perft(S_Position* Pos, uint depth){
         // capturePiece = make_move(Pos, Moves.moves[i]);
         make_move(Pos, Moves.moves[i]);
         
-        if (!(is_king_attacked(Pos))){
+        // if (!(is_king_attacked(Pos))){
             current_nodes += run_perft(Pos, depth - 1);
-        }
+        // }
 
         if (current_nodes != 0){
             printf("%s%s",
@@ -71,13 +72,13 @@ u64 perft(S_Position* Pos, uint depth){
                 squares_int_to_chr[MOVE_TO_SQUARE(Moves.moves[i])]
             );
             switch (MOVE_GET_FLAG(Moves.moves[i])) {
-                case PROMOTION_B: printf("b"); break;
-                case PROMOTION_R: printf("r"); break;
-                case PROMOTION_N: printf("n"); break;
-                case PROMOTION_Q: printf("q"); break;
+                case PROMOTION_B:
                 case CAPTURE_PROMOTION_B: printf("b"); break;
+                case PROMOTION_R:
                 case CAPTURE_PROMOTION_R: printf("r"); break;
+                case PROMOTION_N:
                 case CAPTURE_PROMOTION_N: printf("n"); break;
+                case PROMOTION_Q:
                 case CAPTURE_PROMOTION_Q: printf("q"); break;
                 default: break;
             }
@@ -105,6 +106,7 @@ u64 run_perft(S_Position* Pos, uint depth){
     S_Board Board_copy;
     memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
     generateMoves(Pos, &Moves);
+    filter_illegal(Pos, &Moves);
     // u8 capturePiece;
     u16 state = encode_state(Pos);
     
@@ -112,9 +114,9 @@ u64 run_perft(S_Position* Pos, uint depth){
         // capturePiece = make_move(Pos, Moves.moves[i]);
         make_move(Pos, Moves.moves[i]);
         
-        if (!(is_king_attacked(Pos))){
+        // if (!(is_king_attacked(Pos))){
             nodes += run_perft(Pos, depth - 1);
-        }
+        // }
 
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
         restore_state(Pos, state);

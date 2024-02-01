@@ -30,17 +30,28 @@ static inline const char* decodeFenError(u8 flag){
     }
 } 
 
+int returnintkurwo(){
+    return 5;
+}
+
 int main(){
     S_Board Board;
     S_Position Pos = {.Board = &Board};
     init_all();
 
-    u8 err = load_fen(&Pos,"r3k2r/p1ppqpb1/bn1Ppnp1/4N3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
+    u8 err = load_fen(&Pos,"r3k2r/p1ppqpb1/bnN1pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 1 1");
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
     // perft_suite(&Pos);
+    // S_Moves Moves;
+    // generateMoves(&Pos, &Moves);
+    // filter_illegal(&Pos, &Moves);
+    // print_moves(Pos.Board, &Moves);
+    // time_perft(&Pos, "r3k2r/p1pNqpb1/bn2p1p1/3P4/1p2n3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 2",1);
+    // time_perft(&Pos, "r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 1 1",1);
     time_perft(&Pos, kiwipete, 5);
+    // fails -> check it, yesterday I removed the attacker in betweenBB (no longer visible in pins func)
     // free(TTable.entries);
 }
 
