@@ -40,7 +40,7 @@ int main(){
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
     perft_suite(&Pos);
-    // time_perft(&Pos, "8/8/8/1Ppp3r/RK3p1k/8/4P1P1/8 w - c6 0 3", 1);
+    // time_perft(&Pos, kiwipete, 5);
     // free(TTable.entries);
 }
 

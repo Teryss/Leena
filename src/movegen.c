@@ -31,7 +31,6 @@ static INLINE u64 square_attackers(const S_Position* const Pos, const uint squar
         (get_rook_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) |
         (get_bishop_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) |
         (Masks.knight[square] & (Pos->Board->piecesBB[n] & enemy())) |
-        (Masks.king[square] & (Pos->Board->piecesBB[k] & enemy())) |
         (Masks.pawn_attacks[Pos->sideToMove][square] & (Pos->Board->piecesBB[p] & enemy()))
     );
 }
@@ -55,7 +54,7 @@ static INLINE u64 is_square_attacked_custom(const S_Position* const Pos, const u
     );
 }
 
-static NOINLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
+static INLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     switch (pieceType) {
         case b:
             return get_bishop_attacks(occupancy, square);
@@ -72,7 +71,7 @@ static NOINLINE u64 get_attacks(u64 occupancy, u8 pieceType, u8 square){
     }
 }
 
-static NOINLINE void _generate_all(const S_Position* const Pos, S_Moves* Moves, const u64 empty_or_enemy, const u8 pieceType){
+static INLINE void _generate_all(const S_Position* const Pos, S_Moves* Moves, const u64 empty_or_enemy, const u8 pieceType){
     u64 bb = Pos->Board->piecesBB[pieceType] & us(), attack_bb;
     u8 from_square, to_square;
 
@@ -93,7 +92,7 @@ static NOINLINE void _generate_all(const S_Position* const Pos, S_Moves* Moves, 
     }
 }
 
-static NOINLINE void _generate_captures(const S_Position* const Pos, S_Moves* Moves, const u8 pieceType){
+static INLINE void _generate_captures(const S_Position* const Pos, S_Moves* Moves, const u8 pieceType){
     u64 bb = Pos->Board->piecesBB[pieceType] & us(), attack_bb;
     u8 from_square, to_square;
 
@@ -112,7 +111,7 @@ static NOINLINE void _generate_captures(const S_Position* const Pos, S_Moves* Mo
 
 #define shift(bb, n) ((n) > 0 ? (bb) << (n) : (bb) >> -(n))
 
-static NOINLINE void generate_pawns(const S_Position* const Pos, S_Moves* Moves, const u8 color){
+static inline void generate_pawns(const S_Position* const Pos, S_Moves* Moves, const u8 color){
     #define NOT_ON_A_FILE (18374403900871474942ULL)
     #define NOT_ON_H_FILE (9187201950435737471ULL)
 
@@ -318,18 +317,14 @@ u64 pins(const S_Position* const Pos, u8 king_square){
         (((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) & get_rook_attacks(0, king_square)) | 
         (((Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) & get_bishop_attacks(0, king_square))
     );
-    // print_bitboard(xRayAttackers);
     u64 pins = 0ULL, possible_pins;
     u8 attacker_square;
 
     while (xRayAttackers) {
         attacker_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(xRayAttackers);
         CLEAR_LEAST_SIGNIFICANT_BIT(xRayAttackers);
-        
-        // print_bitboard(between[king_square][attacker_square]);
+
         possible_pins = between[king_square][attacker_square] & Pos->Board->colorBB[BOTH];
-        // print_bitboard(possible_pins);
-        // printf("not more than 1 [%d][%lu][%llu]\n", possible_pins && !(MORE_THAN_ONE(possible_pins)), possible_pins, (MORE_THAN_ONE(possible_pins)));
         if (possible_pins && !(MORE_THAN_ONE(possible_pins))){
             pins |= possible_pins;
         }
@@ -338,9 +333,7 @@ u64 pins(const S_Position* const Pos, u8 king_square){
 }
 
 static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move, u64 _pin, u64 checkers) { 
-    // return 0;
     u8 from_square = MOVE_FROM_SQUARE(Move), to_square = MOVE_TO_SQUARE(Move);
-    // print_bitboard(checkers);
 
     /* if it's a double check, a king has to move */
     if (MORE_THAN_ONE(checkers)){
@@ -374,9 +367,6 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
     
             return 1;
         }
-        // print_bitboard(sqrs(to_square) & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]));
-        // print_bitboard(sqrs(to_square));
-        // print_bitboard((between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]));
         // is already pinned
         if (sqrs(from_square) & _pin)
             return 0;
@@ -394,32 +384,12 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
         /*  if there is no check, 
         we only need to care about pins 
         and en passant discover checks, which are a special case    */
-        if (MOVE_GET_FLAG(Move) == EP_CAPTURE){
-            // printf("EN PASSANT\n");
-            // if our king is on the same line
-            // u64 kingSq;
-            // print_bitboard(Pos->Board->piecesBB[k] & us());
-            // print_move(Pos->Board, Move);
-            
-            // u64 king = Pos->Board->piecesBB[k] & us();
-            // print_bitboard((RANK_1 << (from_square / 8) * 8));
-            // print_bitboard(king & (RANK_1 << (from_square / 8) * 8) );
-            // printf("%d\n", (from_square % 8));
-            // print_bitboard(king);
-            // print_bitboard((~NOT_ON_A_FILE) << (from_square % 8));
-            // print_bitboard(king & ((~NOT_ON_A_FILE) << (from_square % 8)));
-
-            // print_move(Pos->Board, Move);
+        if (MOVE_GET_FLAG(Move) == EP_CAPTURE){;
             if (Pos->Board->piecesBB[k] & us() & (RANK_1 << (from_square / 8) * 8)){
                 const u8 enemyPawnSq = to_square + 8 - 16 * Pos->sideToMove;
-                // printf("to square [%s:%d]\n", squares_int_to_chr[to_square], to_square);
-                // print_bitboard(sqrs(to_square + 8 - 16 * Pos->sideToMove));
-                // printf("Gspot\n");
-                // print_bitboard((sqrs(enemyPawnSq) | sqrs(from_square)));
-                // print_bitboard(Pos->Board->colorBB[BOTH] );
-                // print_bitboard(get_rook_attacks(Pos->Board->colorBB[BOTH] ^ (sqrs(enemyPawnSq) | sqrs(from_square)), kingSquare));
-                // print_bitboard( (RANK_1 << (from_square / 8) * 8) );
-                // print_bitboard(((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()));
+
+                // We clear enemy pawn and our pawn and check if the king is attack horizontaly
+                // Discovered checks vertivaly are handled by pins itself like any other capture
                 if (get_rook_attacks(Pos->Board->colorBB[BOTH] ^ sqrs(enemyPawnSq) ^ sqrs(from_square), kingSquare) 
                     & (RANK_1 << (from_square / 8) * 8) 
                     & ((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy())){
@@ -427,15 +397,6 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
                 }
                 return 1;
             }
-        
-            // if (Pos->Board->piecesBB[k] & us() & ((~NOT_ON_A_FILE) << (from_square % 8))){
-            //     // printf("Its g\n");
-            //     if (get_rook_attacks(Pos->Board->colorBB[BOTH] ^ sqrs(from_square), kingSquare) 
-            //         & ((~NOT_ON_A_FILE) << (from_square % 8)) 
-            //         & ((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy())){
-            //         return 0;
-            //     }
-            // }
         }
 
         if (_pin & sqrs(from_square)){
@@ -448,21 +409,16 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
 
 void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
     const u8 king_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us());
-
     const u16* end = Moves->moves + Moves->count;
     const u64 _pins = pins(Pos, king_square);
     const u64 isInCheck = square_attackers(Pos, king_square);
 
-    // printf("-- KS: %s ; isInCheck: %lu, pins:\n", squares_int_to_chr[king_square], isInCheck);
-    // print_bitboard(_pins);
     u16* lastMove = Moves->moves;
 
     u64 res = 0;
     for (u16* currentMove = Moves->moves; currentMove != end; currentMove++){
         if (!(res = is_legal(Pos, king_square, *currentMove, _pins, isInCheck))){
             Moves->count--;
-            // printf("Is legal: %d\n", res);
-            // print_move(Pos->Board, *lastMove);
             continue;
         }
         *lastMove = *currentMove;
@@ -475,8 +431,6 @@ void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
 It's used during search/perft, when sideToMove has already been changed
 During move generation we use is_square_attacked and specify king's location
 */
-
-// idk if us or enemy!
 PURE u8 is_king_attacked(const S_Position* const Pos){
     const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & enemy());
     if (get_rook_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & us()) return 1;
@@ -484,6 +438,5 @@ PURE u8 is_king_attacked(const S_Position* const Pos){
     if (Masks.knight[square] & Pos->Board->piecesBB[n] & us()) return 1;
     if (Masks.pawn_attacks[1 - Pos->sideToMove][square] & Pos->Board->piecesBB[p] & us()) return 1;
     if (Masks.king[square] & Pos->Board->piecesBB[k] & us()) return 1;
-    // if (Masks.pawn_attacks[us()][square] & Pos->Board->piecesBB[p] & us()) return 1;
     return 0;
 }
