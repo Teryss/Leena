@@ -361,6 +361,7 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
         Other:
             block a check
             capture attacking piece
+            *special case en passant
     */
     }else if (checkers){
         if (from_square == kingSquare){
@@ -372,19 +373,23 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
                 return 0;
     
             return 1;
-        }else{
-            // print_bitboard(sqrs(to_square) & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]));
-            // print_bitboard(sqrs(to_square));
-            // print_bitboard((between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]));
-            // is already pinned
-            if (sqrs(from_square) & _pin)
-                return 0;
-            // blocks or captures
-            if (sqrs(to_square) & (checkers | between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
-                return 1;
+        }
+        // print_bitboard(sqrs(to_square) & (between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]));
+        // print_bitboard(sqrs(to_square));
+        // print_bitboard((between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]));
+        // is already pinned
+        if (sqrs(from_square) & _pin)
             return 0;
+        // blocks or captures
+        if (sqrs(to_square) & (checkers | between[kingSquare][GET_LEAST_SIGNIFICANT_BIT_INDEX(checkers)]))
+            return 1;
+        
+        if (MOVE_GET_FLAG(Move) == EP_CAPTURE){
+            if (checkers & sqrs(to_square + 8 - 16 * Pos->sideToMove))
+                return 1;
         }
 
+        return 0;
     }else{
         /*  if there is no check, 
         we only need to care about pins 
