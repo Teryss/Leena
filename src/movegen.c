@@ -17,6 +17,7 @@
 
 #define us() (Pos->Board->colorBB[Pos->sideToMove])
 #define enemy() (Pos->Board->colorBB[1 - Pos->sideToMove])
+#define shift(bb, n) ((n) > 0 ? (bb) << (n) : (bb) >> -(n))
 
 INLINE CONST u16 encode_move(u8 from_square, u8 to_square, u8 move_flag){
     return (u16)(
@@ -109,19 +110,17 @@ static INLINE void _generate_captures(const S_Position* const Pos, S_Moves* Move
     }
 }
 
-#define shift(bb, n) ((n) > 0 ? (bb) << (n) : (bb) >> -(n))
-
 static inline void generate_pawns(const S_Position* const Pos, S_Moves* Moves, const u8 color){
     #define NOT_ON_A_FILE (18374403900871474942ULL)
     #define NOT_ON_H_FILE (9187201950435737471ULL)
 
     const u64 doublePushRank = color == WHITE ? RANK_7 : RANK_2;
-    const u64 promotionRank = color == WHITE ? RANK_2 : RANK_7;
+    // const u64 promotionRank = color == WHITE ? RANK_2 : RANK_7;
     const u64 lastRank = color == WHITE ? RANK_1 : RANK_8;
     const int oneUp = color == WHITE ? -8 : 8; 
     const int upRight = color == WHITE ? -7 : 9;
     const int upLeft = color == WHITE ? -9 : 7;
-    const u64 doublePushMask = 4311744512ULL;
+    // const u64 doublePushMask = 4311744512ULL;
 
     const u64 empty = ~Pos->Board->colorBB[BOTH];
     const u64 origin_bb = Pos->Board->piecesBB[p] & us();

@@ -64,24 +64,24 @@ u64 perft(S_Position* Pos, uint depth){
         
         current_nodes += run_perft(Pos, depth - 1);
 
-        // if (current_nodes != 0){
-        //     printf("%s%s",
-        //         squares_int_to_chr[MOVE_FROM_SQUARE(Moves.moves[i])],
-        //         squares_int_to_chr[MOVE_TO_SQUARE(Moves.moves[i])]
-        //     );
-        //     switch (MOVE_GET_FLAG(Moves.moves[i])) {
-        //         case PROMOTION_B:
-        //         case CAPTURE_PROMOTION_B: printf("b"); break;
-        //         case PROMOTION_R:
-        //         case CAPTURE_PROMOTION_R: printf("r"); break;
-        //         case PROMOTION_N:
-        //         case CAPTURE_PROMOTION_N: printf("n"); break;
-        //         case PROMOTION_Q:
-        //         case CAPTURE_PROMOTION_Q: printf("q"); break;
-        //         default: break;
-        //     }
-        //     printf(": %"PRIu64"\n", current_nodes);
-        // }
+        if (current_nodes != 0){
+            printf("%s%s",
+                squares_int_to_chr[MOVE_FROM_SQUARE(Moves.moves[i])],
+                squares_int_to_chr[MOVE_TO_SQUARE(Moves.moves[i])]
+            );
+            switch (MOVE_GET_FLAG(Moves.moves[i])) {
+                case PROMOTION_B:
+                case CAPTURE_PROMOTION_B: printf("b"); break;
+                case PROMOTION_R:
+                case CAPTURE_PROMOTION_R: printf("r"); break;
+                case PROMOTION_N:
+                case CAPTURE_PROMOTION_N: printf("n"); break;
+                case PROMOTION_Q:
+                case CAPTURE_PROMOTION_Q: printf("q"); break;
+                default: break;
+            }
+            printf(": %"PRIu64"\n", current_nodes);
+        }
 
         // undo_move(Pos, Moves.moves[i], state, capturePiece);
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
@@ -115,6 +115,7 @@ u64 run_perft(S_Position* Pos, uint depth){
         nodes += run_perft(Pos, depth - 1);
 
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
+        ASSERT((Pos->ply < 8));
         restore_state(Pos, state);
         // Pos->sideToMove = 1 - Pos->sideToMove;
         // undo_move(Pos, Moves.moves[i], state, capturePiece);

@@ -107,7 +107,7 @@ typedef struct{
 }S_Moves;
 
 typedef struct{
-    u32 move;
+    u16 move;
     i32 score;
 }S_Move;
 
@@ -138,7 +138,7 @@ extern void init_bb();
 // board.c
 extern uint load_fen(S_Position* Pos, const char* const FEN);
 extern void reset(S_Position* pos);
-extern void print_board(S_Position* pos);
+extern void print_board(const S_Position* Pos);
 extern void print_bitboard(u64 bitboard);
 
 extern const char* pieces_int_to_chr;
@@ -164,7 +164,6 @@ extern const uint ROOK_PEXT_OFFSET[64];
 extern const uint ROOK_RELEVANT_BITS_BY_SQUARE[64];
 extern const uint BISHOP_RELEVANT_BITS_BY_SQUARE[64];
 extern const uint CASTLING_CHANGE_ON_MOVE[64];
-extern const uint MVV_LVA[12][12];
 extern const int16_t* PIECE_SQUARE_BONUS[6];
 
 // movegen.c
@@ -175,26 +174,24 @@ extern const int16_t* PIECE_SQUARE_BONUS[6];
 
 extern void generateMoves(const S_Position* const Pos, S_Moves* Moves);
 extern void generateOnlyCaptures(const S_Position* const Pos, S_Moves* Moves);
-// extern CONST u16 encode_state(const S_Board* const Board);
-// extern CONST u32 encode_move(u8 piece, u8 from_square, u8 to_square, u8 promotion_piece, u8 capture_piece, u8 move_flag);
 extern PURE u8 is_king_attacked(const S_Position* const Pos);
 extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 
 // move.c
 #define GET_CASTLE_PERM(state) (state & 0b1111)
 #define GET_FIFTY_MOVES_COUNTER(state) ((state >> 4) & 0b111111)
-#define GET_EN_PASSANT_SQR(state) (state >> 10)
+#define GET_EN_PASSANT_SQR(state) ((state >> 10) & 0b111111)
 
 extern u8 make_move(S_Position* Pos, u16 move);
-// extern void restore_state(S_Position* Pos, u16 state);
 extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
-extern u16 encode_state(S_Position* Pos);
+// extern u16 encode_state(S_Position* Pos);
 extern void print_moves(S_Board* Board, S_Moves* Moves);
 extern void print_move(S_Board* Board, u16 move);
 
 // perft.c
 extern void perft_suite(S_Position* Pos);
 extern u64 perft(S_Position* Pos, uint depth);
+
 // search.c
 extern u64 total_nodes_searched;
 extern S_Move search(S_Position* Pos, uint depth);
@@ -203,18 +200,17 @@ extern S_Move search(S_Position* Pos, uint depth);
 extern u32 killer_moves[MAX_GAME_SIZE][2];
 extern i32 evaluate(S_Position* Pos);
 extern void clear_killer_moves();
-extern void sort_moves(S_Position* Pos, S_Moves* Moves, uint ply);
-extern void sort_captures(S_Position* Pos, S_Moves* Moves);
+extern void sort_moves(const S_Position* const Pos, S_Moves* Moves);
+extern void sort_captures(const S_Position* const Pos, S_Moves* Moves);
 
 // ttable.c
 extern S_TTable TTable;
-extern u64 TT_squares_hash[12][64];
+extern u64 TT_squares_hash[2][6][64];
 extern u64 TT_castling_rights_hash[16];
 extern u64 TT_enpassant_hash[8];
 extern u64 TT_side_to_move_hash;
 extern void init_TT();
-extern void hash_position(S_Board* Board);
-
+extern void hash_position(S_Position* Pos);
 extern u64 pins(const S_Position* const Pos, u8 king_square);
 
 // uci.c
@@ -276,6 +272,14 @@ INLINE void restore_state(S_Position* Pos, u16 state){
     Pos->fiftyMovesCounter = GET_FIFTY_MOVES_COUNTER(state);
     Pos->sideToMove = 1 - Pos->sideToMove;
     Pos->ply--;
+}
+
+INLINE u16 encode_state(S_Position* Pos){
+    return (u16)(
+        (Pos->castlePermission & 0b1111) |
+        (Pos->fiftyMovesCounter & 0b111111) << 4 |
+        Pos->enPassantSquare << 10
+    );
 }
 
 #endif

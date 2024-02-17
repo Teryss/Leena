@@ -7,24 +7,19 @@
 #define SECOND_KILLER_MOVE_BONUS 8000
 
 u32 killer_moves[MAX_GAME_SIZE][2];
-const uint MVV_LVA[12][12] = {
-    {105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605},
-    {104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604},
-    {103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603},
-    {102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602},
-    {101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601},
-    {100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600},
-
-    {105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605},
-    {104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604},
-    {103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603},
-    {102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602},
-    {101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601},
-    {100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600},
+const uint MVV_LVA[6][6] = {
+    {105, 205, 305, 405, 505, 605},
+    {104, 204, 304, 404, 504, 604},
+    {103, 203, 303, 403, 503, 603},
+    {102, 202, 302, 402, 502, 602},
+    {101, 201, 301, 401, 501, 601},
+    {100, 200, 300, 400, 500, 600},
 };
 
 const int16_t PIECE_VALUE[6] = {
-    100, 350, 350, 525, 1000, 10000
+    // 100, 350, 350, 525, 1000, 10000
+    100, 305, 333, 563, 950, 10000
+    // 9.82, 4.93, 3.28, 3.16, 1
 };
 
 const int16_t PAWN_SCORE[64] = {
@@ -139,60 +134,70 @@ i32 evaluate(S_Position* Pos){
     return eval * side_multiplier;
 }
 
-// void sort_moves(S_Board* Board, S_Moves* Moves, uint ply){
-//     u64 temp_move;
-//     uint scores[256];
-//     uint temp_score;
-//     for (int i = 0; i < Moves->count; i++){
-//         if (MOVE_GET_FLAG(Moves->moves[i]) >= CAPTURE){
-//             scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])] + CAPTURE_BONUS;
-//         }else{
-//             if (Moves->moves[i] == killer_moves[0][ply]){
-//                 scores[i] = FIRST_KILLER_MOVE_BONUS;
-//             }else if (Moves->moves[i] == killer_moves[1][ply]){
-//                 scores[i] = SECOND_KILLER_MOVE_BONUS;
-//             }else{
-//                 scores[i] = 0;
-//             }    
-//         }
-//     }
+uint scores[256];
+
+void sort_moves(const S_Position* const Pos, S_Moves* Moves){
+    u16 temp_move;
+    // uint scores[256];
+    uint temp_score;
+
+    for (int i = 0; i < Moves->count; i++){
+        if (MOVE_GET_FLAG(Moves->moves[i]) >= CAPTURE){
+            scores[i] = MVV_LVA
+                [Pos->Board->pieceSet[MOVE_FROM_SQUARE(Moves->moves[i])]]
+                [Pos->Board->pieceSet[MOVE_TO_SQUARE(Moves->moves[i])]]
+                + CAPTURE_BONUS;
+        }else{
+            if (Moves->moves[i] == killer_moves[0][Pos->ply + 1]){
+                scores[i] = FIRST_KILLER_MOVE_BONUS;
+            }else if (Moves->moves[i] == killer_moves[1][Pos->ply + 1]){
+                scores[i] = SECOND_KILLER_MOVE_BONUS;
+            }else{
+                scores[i] = 0;
+            }    
+        }
+    }
     
-//     for (int i = 0; i < Moves->count; i++){
-//         if (scores[i] == 0)
-//             continue;
-//         for (int j = 0; j < Moves->count; j++){
-//             if (scores[i] > scores[j]){
-//                 temp_move = Moves->moves[j];
-//                 Moves->moves[j] = Moves->moves[i];
-//                 Moves->moves[i] = temp_move;
+    for (int i = 0; i < Moves->count; i++){
+        if (scores[i] == 0)
+            continue;
+        for (int j = 0; j < Moves->count; j++){
+            if (scores[i] > scores[j]){
+                temp_move = Moves->moves[j];
+                Moves->moves[j] = Moves->moves[i];
+                Moves->moves[i] = temp_move;
 
-//                 temp_score = scores[j];
-//                 scores[j] = scores[i];
-//                 scores[i] = temp_score;
-//             }
-//         }
-//     }
-// }
+                temp_score = scores[j];
+                scores[j] = scores[i];
+                scores[i] = temp_score;
+            }
+        }
+    }
+}
 
-// void sort_captures(S_Board* Board, S_Moves* Moves){
-//     u64 temp_move;
-//     uint scores[256];
-//     uint temp_score;
+void sort_captures(const S_Position* const Pos, S_Moves* Moves){
+    u64 temp_move;
+    uint scores[256];
+    uint temp_score;
 
-//     for (int i = 0; i < Moves->count; i++){
-//         scores[i] = MVV_LVA[MOVE_GET_PIECE(Moves->moves[i])][MOVE_GET_CAPTURE_PIECE(Moves->moves[i])];
-//     }
-//     for (int i = 0; i < Moves->count; i++){
-//         for (int j = 0; j < Moves->count; j++){
-//             if (scores[i] > scores[j]){
-//                 temp_move = Moves->moves[j];
-//                 Moves->moves[j] = Moves->moves[i];
-//                 Moves->moves[i] = temp_move;
+    for (int i = 0; i < Moves->count; i++){
+        scores[i] = MVV_LVA
+                [Pos->Board->pieceSet[MOVE_FROM_SQUARE(Moves->moves[i])]]
+                [Pos->Board->pieceSet[MOVE_TO_SQUARE(Moves->moves[i])]]
+                + CAPTURE_BONUS;
+    }
 
-//                 temp_score = scores[j];
-//                 scores[j] = scores[i];
-//                 scores[i] = temp_score;
-//             }
-//         }
-//     }
-// }
+    for (int i = 0; i < Moves->count; i++){
+        for (int j = 0; j < Moves->count; j++){
+            if (scores[i] > scores[j]){
+                temp_move = Moves->moves[j];
+                Moves->moves[j] = Moves->moves[i];
+                Moves->moves[i] = temp_move;
+
+                temp_score = scores[j];
+                scores[j] = scores[i];
+                scores[i] = temp_score;
+            }
+        }
+    }
+}

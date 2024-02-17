@@ -3,14 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "defs.h"
 #include <inttypes.h>
+
+#include "defs.h"
 
 S_Masks Masks;
 
 // void init_all();
 void time_perft(S_Position* Pos, const char* FEN, int depth);
-// void times_search(S_Position* Pos, const char* FEN, int depth);
+void time_search(S_Position* Pos, const char* FEN, int depth);
 void comparePositions(S_Position* Pos, S_Position* PreviousPosition);
 
 static inline const char* decodeFenError(u8 flag){
@@ -42,13 +43,9 @@ int main(){
 
     // perft_suite(&Pos);
     // print_board(&Pos);
-    S_Move best = search(&Pos, 6);
-
-    print_move(Pos.Board, best.move);
-    printf("Score: %i\n", best.score);
-    printf("Total nodes: %"PRIu64"\n", total_nodes_searched);
-
+    time_search(&Pos, kiwipete, 7);
     // time_perft(&Pos, kiwipete, 6);
+
     // free(TTable.entries);
 }
 
@@ -56,7 +53,7 @@ void init_all(){
     init_masks();
     init_bb();
 //     init_TT();
-//     clear_killer_moves();
+    clear_killer_moves();
 }
 
 void comparePositions(S_Position* Pos, S_Position* PreviousPosition){
@@ -91,13 +88,13 @@ void time_perft(S_Position* Pos, const char* FEN, int depth){
     printf("%0.2f MNodes/second\n", ((double)nodes / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
 }
 
-// void time_search(S_Position* Pos, const char* FEN, int depth){
-//     load_fen(Pos, FEN);
-//     clock_t start = clock();
-//     S_Move best_move = search(Pos->Board, depth);
-//     clock_t end = clock();
-//     print_move(best_move.move);
-//     printf("Score: %0.2f\n", (double)best_move.score/100);
-//     printf("Search took: %f seconds, total nodes: %"PRIu64"\n", (double)(end - start) / CLOCKS_PER_SEC, total_nodes_searched);
-//     printf("%0.2f MNodes/second\n", ((double)total_nodes_searched / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
-// }
+void time_search(S_Position* Pos, const char* FEN, int depth){
+    load_fen(Pos, FEN);
+    clock_t start = clock();
+    S_Move best_move = search(Pos, depth);
+    clock_t end = clock();
+    print_move(Pos->Board, best_move.move);
+    printf("Score: %0.2f\n", (double)best_move.score/100);
+    printf("Search took: %f seconds, total nodes: %"PRIu64"\n", (double)(end - start) / CLOCKS_PER_SEC, total_nodes_searched);
+    printf("%0.2f MNodes/second\n", ((double)total_nodes_searched / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
+}

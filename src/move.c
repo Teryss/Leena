@@ -7,14 +7,6 @@
     4 bits - castle permission
 */
 
-u16 encode_state(S_Position* Pos){
-    return (u16)(
-        (Pos->castlePermission & 0b1111) |
-        (Pos->fiftyMovesCounter & 0b111111) << 4 |
-        Pos->enPassantSquare << 10
-    );
-}
-
 static inline void castle(S_Position* Pos, u8 rook_from, u8 rook_to, u8 color){
     // move the rook
     Pos->Board->piecesBB[r] ^= sqrs(rook_from) | sqrs(rook_to);

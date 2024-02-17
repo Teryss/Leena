@@ -129,7 +129,7 @@ void reset(S_Position* pos){
     pos->Board->hash = 0;
 }
 
-void print_board(S_Position* Pos){
+void print_board(const S_Position* Pos){
     for (int r = 0; r < 8; r++){
         printf("%d ", 8 - r);
 
