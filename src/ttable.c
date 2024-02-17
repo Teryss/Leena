@@ -66,7 +66,7 @@ void hash_position(S_Position* Pos){
         while (bb) {
             square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-            Pos->Board->hash ^= TT_squares_hash[BLACK][piece][square];
+            Pos->Board->hash ^= TT_squares_hash[WHITE][piece][square];
         }
     }
     Pos->Board->hash ^= TT_castling_rights_hash[Pos->castlePermission];

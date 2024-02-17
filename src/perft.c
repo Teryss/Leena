@@ -105,20 +105,14 @@ u64 run_perft(S_Position* Pos, uint depth){
     memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
     generateMoves(Pos, &Moves);
     filter_illegal(Pos, &Moves);
-    // u8 capturePiece;
     u16 state = encode_state(Pos);
     
     for (int i = 0; i < Moves.count; i++){
-        // capturePiece = make_move(Pos, Moves.moves[i]);
-        make_move(Pos, Moves.moves[i]);
-        
+        make_move(Pos, Moves.moves[i]);   
         nodes += run_perft(Pos, depth - 1);
 
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
-        ASSERT((Pos->ply < 8));
         restore_state(Pos, state);
-        // Pos->sideToMove = 1 - Pos->sideToMove;
-        // undo_move(Pos, Moves.moves[i], state, capturePiece);
     }
 
     return nodes;

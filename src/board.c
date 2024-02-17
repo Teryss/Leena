@@ -115,6 +115,7 @@ uint load_fen(S_Position* Pos, const char* const FEN){
     if (fenPart != 5)
         return NOT_ENOUGH_INFO;
 
+    hash_position(Pos);
     return SUCCESS;
 }
 

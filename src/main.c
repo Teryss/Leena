@@ -40,19 +40,18 @@ int main(){
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
-
     // perft_suite(&Pos);
-    // print_board(&Pos);
-    time_search(&Pos, kiwipete, 7);
+    print_board(&Pos);
+    time_search(&Pos, kiwipete, 8);
     // time_perft(&Pos, kiwipete, 6);
 
-    // free(TTable.entries);
+    free(TTable.entries);
 }
 
 void init_all(){
     init_masks();
     init_bb();
-//     init_TT();
+    init_TT();
     clear_killer_moves();
 }
 

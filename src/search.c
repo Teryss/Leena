@@ -15,48 +15,48 @@ S_Move search(S_Position* Pos, uint depth);
 i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
 i32 quiesence_search(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
 
-// static INLINE u64 get_TT_index(S_Board* Board){
-//     return Board->hash % TTable.count;
-// }
+static INLINE u64 get_TT_index(S_Board* Board){
+    return Board->hash % TTable.count;
+}
 
-// static INLINE void put_TT_entry(u64 position_hash, i32 eval, Node node_type, u8 depth){
-//     S_TT_Entry* entry = &TTable.entries[position_hash % TTable.count];
+static INLINE void put_TT_entry(u64 position_hash, i32 eval, Node node_type, u8 depth){
+    S_TT_Entry* entry = &TTable.entries[position_hash % TTable.count];
 
-//     // if (entry->depth < depth){
-//         entry->hash = position_hash;
-//         entry->score = eval;
-//         entry->node_type = node_type;
-//         entry->depth = depth;
-//     // }
-// }
+    // if (entry->depth < depth){
+        entry->hash = position_hash;
+        entry->score = eval;
+        entry->node_type = node_type;
+        entry->depth = depth;
+    // }
+}
 
-// static inline i32 get_TT_entry_score(S_Board* Board, i32 alpha, i32 beta, i32 depth){
-//     S_TT_Entry* entry = &TTable.entries[get_TT_index(Board)];
+static inline i32 get_TT_entry_score(S_Board* Board, i32 alpha, i32 beta, i32 depth){
+    S_TT_Entry* entry = &TTable.entries[get_TT_index(Board)];
     
-//     if (entry->hash == Board->hash){
-//         if (entry->depth >= depth){
-//             switch (entry->node_type) {
-//                 case NODE_NONE:
-//                     return NO_HASH_ENTRY;
-//                 case NODE_EXACT:
-//                     return entry->score;
-//                 case NODE_UPPER:
-//                     if (entry->score <= alpha){
-//                         return alpha;
-//                     }
-//                     break;
-//                 case NODE_LOWER:
-//                     if (entry->score >= beta){
-//                         return beta;
-//                     }
-//                     break;
-//             }
-//         }
-//     }
-//     else
-//         hash_collision++;
-//     return NO_HASH_ENTRY;
-// }
+    if (entry->hash == Board->hash){
+        if (entry->depth >= depth){
+            switch (entry->node_type) {
+                case NODE_NONE:
+                    return NO_HASH_ENTRY;
+                case NODE_EXACT:
+                    return entry->score;
+                case NODE_UPPER:
+                    if (entry->score <= alpha){
+                        return alpha;
+                    }
+                    break;
+                case NODE_LOWER:
+                    if (entry->score >= beta){
+                        return beta;
+                    }
+                    break;
+            }
+        }
+    }
+    // else
+    //     hash_collision++;
+    return NO_HASH_ENTRY;
+}
 
 static INLINE u8 isReadyToPromote(S_Position* Pos){
     const u64 first_rank = 0xFFLLU; 
@@ -86,7 +86,6 @@ S_Move search(S_Position* Pos, uint depth){
 
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
-
         ASSERT(isKingPresent(Pos));
 
         total_nodes_searched++;
@@ -110,16 +109,16 @@ S_Move search(S_Position* Pos, uint depth){
 
 i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     i32 eval;
-    // if ((eval = get_TT_entry_score(Board, alpha, beta, depth)) != NO_HASH_ENTRY){
-    //     return eval;
-    // }
+    if ((eval = get_TT_entry_score(Pos->Board, alpha, beta, depth)) != NO_HASH_ENTRY){
+        return eval;
+    }
 
     if (depth == 0) {
         // return evaluate(Pos);
         return quiesence_search(Pos, alpha, beta, MAX_DEPTH_QUEIESENCE); 
     }
 
-    // int node_type = NODE_LOWER;
+    int node_type = NODE_LOWER;
 
     S_Moves Moves;
     S_Board Board_copy;
@@ -132,28 +131,28 @@ i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
 
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
-
         total_nodes_searched++;
         eval = -alpha_beta(Pos, -beta, -alpha, depth - 1);
-        restore_state(Pos, state);
 
         if (eval >= beta){
             if (MOVE_GET_FLAG(Moves.moves[i]) < CAPTURE){
                 killer_moves[Pos->ply][1] = killer_moves[Pos->ply][0];
                 killer_moves[Pos->ply][0] = Moves.moves[i];
             }
-            // put_TT_entry(Board->hash, beta, NODE_UPPER, depth);
+            put_TT_entry(Pos->Board->hash, beta, NODE_UPPER, depth);
+            restore_state(Pos, state);
             return beta;
         }
         
         if (eval > alpha){
             alpha = eval;
-            // node_type = NODE_EXACT;
+            node_type = NODE_EXACT;
         }
 
+        restore_state(Pos, state);
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
     }
-    // put_TT_entry(Board->hash, alpha, node_type, depth);
+    put_TT_entry(Pos->Board->hash, alpha, node_type, depth);
     return alpha;
 }
 
