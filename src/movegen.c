@@ -274,7 +274,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     _generate_all(Pos, Moves, empty_or_enemy, q);
 
     bb = Pos->Board->piecesBB[k] & us();
-    // if (!bb) return;
+    if (!bb) return;
     from_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
     CLEAR_LEAST_SIGNIFICANT_BIT(bb);
     attack_bb = (Masks.king[from_square] & empty_or_enemy);
@@ -283,7 +283,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
         CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
         if (square_attackers_w_king(Pos, to_sqr))
             continue;
-        if (Pos->Board->pieceSet[to_sqr] != NO_PIECE){
+        if (Pos->Board->colorBB[BOTH] & (1ULL << to_sqr)){
             Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, CAPTURE);
         }else{
             Moves->moves[Moves->count++] = encode_move(from_square, to_sqr, QUIET);
@@ -293,6 +293,12 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     #define SQUARES_NEEDED_EMPTY__CASTLE_KING 0x6000000000000000LLU
     #define SQUARES_NEEDED_EMPTY__CASTLE_QUEEN 0xE00000000000000LLU
     #define REFLECT_SQUARE_OFFSET 56
+
+    if ((Pos->Board->piecesBB[k] & us()) == 0ULL){
+        print_board(Pos);
+        print_bitboard(Pos->Board->piecesBB[k]);
+        print_bitboard(Pos->Board->colorBB[Pos->sideToMove]);
+    }
 
     if (Pos->castlePermission && !square_attackers(Pos, GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us()))){
         if (((Pos->castlePermission & wk) * enemy_color) | ((Pos->castlePermission & bk) * (Pos->sideToMove))){

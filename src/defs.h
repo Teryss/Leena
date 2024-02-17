@@ -4,6 +4,22 @@
 #include <stdint.h>
 #include <x86intrin.h>
 
+#define DEBUG
+
+#ifndef DEBUG
+#define ASSERT(n)
+#else
+#define ASSERT(n) \
+if(!(n)) { \
+printf("%s - Failed ",#n); \
+printf("On %s ",__DATE__); \
+printf("At %s ",__TIME__); \
+printf("In File %s ",__FILE__); \
+printf("At Line %d\n",__LINE__); \
+exit(1);}
+#endif
+
+
 #define PURE __attribute__((pure))
 #define CONST __attribute__((const))
 #define INLINE __attribute__((always_inline)) inline
@@ -181,14 +197,14 @@ extern void perft_suite(S_Position* Pos);
 extern u64 perft(S_Position* Pos, uint depth);
 // search.c
 extern u64 total_nodes_searched;
-extern S_Move search(S_Board* Board, uint depth);
+extern S_Move search(S_Position* Pos, uint depth);
 
 // eval.c
 extern u32 killer_moves[MAX_GAME_SIZE][2];
 extern i32 evaluate(S_Position* Pos);
 extern void clear_killer_moves();
-extern void sort_moves(S_Board* Board, S_Moves* Moves, uint ply);
-extern void sort_captures(S_Board* Board, S_Moves* Moves);
+extern void sort_moves(S_Position* Pos, S_Moves* Moves, uint ply);
+extern void sort_captures(S_Position* Pos, S_Moves* Moves);
 
 // ttable.c
 extern S_TTable TTable;
@@ -258,6 +274,8 @@ INLINE void restore_state(S_Position* Pos, u16 state){
     Pos->enPassantSquare = GET_EN_PASSANT_SQR(state);
     Pos->castlePermission = GET_CASTLE_PERM(state);
     Pos->fiftyMovesCounter = GET_FIFTY_MOVES_COUNTER(state);
+    Pos->sideToMove = 1 - Pos->sideToMove;
+    Pos->ply--;
 }
 
 #endif

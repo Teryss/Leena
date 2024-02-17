@@ -35,12 +35,20 @@ int main(){
     S_Position Pos = {.Board = &Board};
     init_all();
 
-    u8 err = load_fen(&Pos,"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - g3 0 1");
+    u8 err = load_fen(&Pos,kiwipete);
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
-    perft_suite(&Pos);
-    // time_perft(&Pos, kiwipete, 5);
+
+    // perft_suite(&Pos);
+    // print_board(&Pos);
+    S_Move best = search(&Pos, 6);
+
+    print_move(Pos.Board, best.move);
+    printf("Score: %i\n", best.score);
+    printf("Total nodes: %"PRIu64"\n", total_nodes_searched);
+
+    // time_perft(&Pos, kiwipete, 6);
     // free(TTable.entries);
 }
 

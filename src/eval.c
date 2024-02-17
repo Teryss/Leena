@@ -131,19 +131,11 @@ i32 evaluate(S_Position* Pos){
         while (bb) {
             square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-            eval += PIECE_VALUE[piece - 6];
-            eval += PIECE_SQUARE_BONUS[piece - 6][square];
+            eval += PIECE_VALUE[piece];
+            eval += PIECE_SQUARE_BONUS[piece][square];
         }
     }
-    // for (int piece = 6; piece < 12; piece++){
-    //     bb = Pos->Board->piecesBB[piece];
-    //     while (bb) {
-    //         square = GET_LEAST_SIGNIFICANT_BIT_INDEX(bb);
-    //         CLEAR_LEAST_SIGNIFICANT_BIT(bb);
-    //         eval += PIECE_VALUE[piece - 6];
-    //         eval += PIECE_SQUARE_BONUS[piece - 6][square];
-    //     }
-    // }
+
     return eval * side_multiplier;
 }
 

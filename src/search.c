@@ -1,16 +1,17 @@
-// #include "defs.h"
+#include "defs.h"
 // #include <stdio.h>
-// #include <string.h>
+#include <stdio.h>
+#include <string.h>
 
-// #define INFINITE 1000000
-// #define MAX_DEPTH_QUEIESENCE 6
-// #define NO_HASH_ENTRY 123456
+#define INFINITE 1000000
+#define MAX_DEPTH_QUEIESENCE 6
+#define NO_HASH_ENTRY 123456
 
 // u64 hash_collision = 0;
-// u64 total_nodes_searched = 0;
+u64 total_nodes_searched = 0;
 
-// S_Move search(S_Board* Board, uint depth);
-// i32 alpha_beta(S_Board* Board, i32 alpha, i32 beta, i32 depth);
+S_Move search(S_Position* Pos, uint depth);
+i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
 // i32 quiesence_search(S_Board* Board, i32 alpha, i32 beta, i32 depth);
 
 // static INLINE u64 get_TT_index(S_Board* Board){
@@ -66,78 +67,110 @@
 //     return 0;
 // }
 
-// S_Move search(S_Board* Board, uint depth){
-//     S_Moves Moves;
-//     S_Board Board_copy;
-//     i32 best_eval = -INFINITE, eval, best_move_index = 0, alpha = -INFINITE, beta = INFINITE;
+u64 isKingPresent(S_Position* Pos){
+    return Pos->Board->piecesBB[k] & Pos->Board->colorBB[Pos->sideToMove];
+}
 
-//     generateMoves(Board, &Moves);
-//     sort_moves(Board, &Moves);
-//     memcpy(&Board_copy, Board, sizeof(S_Board));
+S_Move search(S_Position* Pos, uint depth){
+    i32 best_eval = -INFINITE, eval, best_move_index = 0, alpha = -INFINITE, beta = INFINITE;
 
-//     for (int i = 0; i < Moves.count; i++){
-//         make_move(Board, Moves.moves[i]);
-//         if ((is_king_attacked(Board)) == 0){
-//             total_nodes_searched++;
-//             eval = -alpha_beta(Board, alpha, beta, depth - 1);
-//             if (eval > best_eval){
-//                 best_eval = eval;
-//                 best_move_index = i;
-//             }
-            
-//             if (eval > alpha)
-//                 alpha = eval;
+    S_Moves Moves;
+    S_Board Board_copy;
+    memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
+    generateMoves(Pos, &Moves);
+    filter_illegal(Pos, &Moves);
+    u16 state = encode_state(Pos);
+    ASSERT(isKingPresent(Pos));
 
-//         }
-//         memcpy(Board, &Board_copy, sizeof(S_Board));
-//     }
+    for (int i = 0; i < Moves.count; i++){
+        make_move(Pos, Moves.moves[i]);
 
-//     S_Move Best_move = {Moves.moves[best_move_index], best_eval};
-//     return Best_move;
-// }
+        ASSERT(isKingPresent(Pos));
 
-// i32 alpha_beta(S_Board* Board, i32 alpha, i32 beta, i32 depth){
-//     i32 eval;
-//     if ((eval = get_TT_entry_score(Board, alpha, beta, depth)) != NO_HASH_ENTRY){
-//         return eval;
-//     }
+        total_nodes_searched++;
+        eval = -alpha_beta(Pos, alpha, beta, depth - 1);
 
-//     if (depth == 0) { 
-//         return quiesence_search(Board, alpha, beta, MAX_DEPTH_QUEIESENCE);
-//     }
+        if (eval > best_eval){
+            best_eval = eval;
+            best_move_index = i;
+        }
+        
+        if (eval > alpha)
+            alpha = eval;
 
-//     S_Moves Moves;
-//     S_Board Board_copy;
-//     int node_type = NODE_LOWER;
+        memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
+        restore_state(Pos, state);
+    }
 
-//     generateMoves(Board, &Moves);
-//     sort_moves(Board, &Moves);
-//     memcpy(&Board_copy, Board, sizeof(S_Board));
+    S_Move Best_move = {Moves.moves[best_move_index], best_eval};
+    return Best_move;
+}
 
-//     for (int i = 0; i < Moves.count; i++){
-//         make_move(Board, Moves.moves[i]);
-//         if ((is_king_attacked(Board)) == 0){
-//             total_nodes_searched++;
-//             eval = -alpha_beta(Board, -beta, -alpha, depth - 1);
-//             if (eval >= beta){
-//                 if (MOVE_GET_FLAG(Moves.moves[i]) < CAPTURE){
-//                     killer_moves[Board->ply--][1] = killer_moves[Board->ply--][0];
-//                     killer_moves[Board->ply--][0] = Moves.moves[i];
-//                 }
-//                 put_TT_entry(Board->hash, beta, NODE_UPPER, depth);
-//                 return beta;
-//             }
-//             if (eval > alpha){
-//                 alpha = eval;
-//                 node_type = NODE_EXACT;
-//             }
+i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
+    i32 eval;
+    // if ((eval = get_TT_entry_score(Board, alpha, beta, depth)) != NO_HASH_ENTRY){
+    //     return eval;
+    // }
 
-//         }
-//         memcpy(Board, &Board_copy, sizeof(S_Board));
-//     }
-//     put_TT_entry(Board->hash, alpha, node_type, depth);
-//     return alpha;
-// }
+    if (depth == 0) {
+        return evaluate(Pos); 
+        // return quiesence_search(Board, alpha, beta, MAX_DEPTH_QUEIESENCE);
+    }
+
+    // int node_type = NODE_LOWER;
+
+    S_Moves Moves;
+    S_Board Board_copy;
+    memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
+    generateMoves(Pos, &Moves);
+    filter_illegal(Pos, &Moves);
+    u16 state = encode_state(Pos);
+    u8 enpas = Pos->enPassantSquare, fiftyMovesCounter = Pos->fiftyMovesCounter, 
+    castlePermission = Pos->castlePermission, sideToMove = Pos->sideToMove;
+
+
+    for (int i = 0; i < Moves.count; i++){
+        make_move(Pos, Moves.moves[i]);
+        // ASSERT(isKingPresent(Pos));
+        if (!isKingPresent(Pos)){
+            print_move(Pos->Board, Moves.moves[i]);
+            print_board(Pos);
+            print_bitboard(Pos->Board->piecesBB[k]);
+            print_bitboard(Pos->Board->colorBB[Pos->sideToMove]);
+            print_bitboard(Pos->Board->colorBB[1 - Pos->sideToMove]);
+            exit(1);
+        }
+
+        total_nodes_searched++;
+        eval = -alpha_beta(Pos, -beta, -alpha, depth - 1);
+        
+        if (eval >= beta){
+            // if (MOVE_GET_FLAG(Moves.moves[i]) < CAPTURE){
+            //     killer_moves[Board->ply--][1] = killer_moves[Board->ply--][0];
+            //     killer_moves[Board->ply--][0] = Moves.moves[i];
+            // }
+            // put_TT_entry(Board->hash, beta, NODE_UPPER, depth);
+            return beta;
+        }
+        
+        if (eval > alpha){
+            alpha = eval;
+            // node_type = NODE_EXACT;
+        }
+        
+        memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
+        restore_state(Pos, state);
+        ASSERT(Pos->sideToMove == sideToMove);
+        ASSERT(Pos->fiftyMovesCounter == fiftyMovesCounter);
+        ASSERT(Pos->castlePermission == castlePermission);
+        ASSERT(Pos->enPassantSquare == enpas);
+        // ASSERT(memcmp(Pos->Board->piecesBB, &Board_copy.piecesBB, sizeof(u64) * 6) == 0);
+        // ASSERT(memcmp(Pos->Board->colorBB, &Board_copy.colorBB, sizeof(u64) * 3) == 0);
+        // ASSERT(memcmp(Pos->Board, &Board_copy, sizeof(S_Board)) == 0);
+    }
+    // put_TT_entry(Board->hash, alpha, node_type, depth);
+    return alpha;
+}
 
 // i32 quiesence_search(S_Board* Board, i32 alpha, i32 beta, i32 depth){
 //     if (depth == 0)
