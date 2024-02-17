@@ -289,9 +289,9 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
         }
     }
 
-    #define SQUARES_NEEDED_EMPTY__CASTLE_KING 0x6000000000000000LLU
-    #define SQUARES_NEEDED_EMPTY__CASTLE_QUEEN 0xE00000000000000LLU
-    #define REFLECT_SQUARE_OFFSET 56
+    static const u64 SQUARES_NEEDED_EMPTY__CASTLE_KING = 0x6000000000000000LLU;
+    static const u64 SQUARES_NEEDED_EMPTY__CASTLE_QUEEN = 0xE00000000000000LLU;
+    static const u64 REFLECT_SQUARE_OFFSET = 56ULL;
 
     if ((Pos->Board->piecesBB[k] & us()) == 0ULL){
         print_board(Pos);

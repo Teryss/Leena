@@ -12,8 +12,8 @@
 u64 total_nodes_searched = 0;
 
 S_Move search(S_Position* Pos, uint depth);
-i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
-i32 quiesence_search(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
+static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
+static i32 quiesence_search(S_Position* Pos, i32 alpha, i32 beta, i32 depth);
 
 static INLINE u64 get_TT_index(S_Board* Board){
     return Board->hash % TTable.count;
@@ -59,9 +59,9 @@ static inline i32 get_TT_entry_score(S_Board* Board, i32 alpha, i32 beta, i32 de
 }
 
 static INLINE u8 isReadyToPromote(S_Position* Pos){
-    const u64 first_rank = 0xFFLLU; 
-    const u8 seventh_rank_multiplier = 8 * 6;
-    const u8 seventh_to_second_rank = 8 * 5;
+    static const u64 first_rank = 0xFFLLU; 
+    static const u8 seventh_rank_multiplier = 8 * 6;
+    static const u8 seventh_to_second_rank = 8 * 5;
     if ((first_rank << (seventh_rank_multiplier - seventh_to_second_rank * Pos->sideToMove)) & Pos->Board->piecesBB[p] & Pos->Board->colorBB[Pos->sideToMove]){
         return 1;
     }
@@ -107,7 +107,7 @@ S_Move search(S_Position* Pos, uint depth){
     return Best_move;
 }
 
-i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
+static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     i32 eval;
     if ((eval = get_TT_entry_score(Pos->Board, alpha, beta, depth)) != NO_HASH_ENTRY){
         return eval;
@@ -156,7 +156,7 @@ i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     return alpha;
 }
 
-i32 quiesence_search(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
+static i32 quiesence_search(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     if (depth == 0)
         return evaluate(Pos);
 
