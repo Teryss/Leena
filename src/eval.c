@@ -7,7 +7,8 @@
 #define SECOND_KILLER_MOVE_BONUS 8000
 
 u32 killer_moves[MAX_GAME_SIZE][2];
-const uint MVV_LVA[6][6] = {
+
+static const uint MVV_LVA[6][6] = {
     {105, 205, 305, 405, 505, 605},
     {104, 204, 304, 404, 504, 604},
     {103, 203, 303, 403, 503, 603},
@@ -16,13 +17,13 @@ const uint MVV_LVA[6][6] = {
     {100, 200, 300, 400, 500, 600},
 };
 
-const int16_t PIECE_VALUE[6] = {
+static const int16_t PIECE_VALUE[6] = {
     100, 350, 350, 525, 1000, 10000
     // 100, 305, 333, 563, 950, 10000
     // 100, 316, 327, 493, 982, 10000
 };
 
-const int16_t PAWN_SCORE[64] = {
+static const int16_t PAWN_SCORE[64] = {
     90,  90,  90,  90,  90,  90,  90,  90,
     30,  30,  30,  40,  40,  30,  30,  30,
     20,  20,  20,  30,  30,  30,  20,  20,
@@ -33,7 +34,7 @@ const int16_t PAWN_SCORE[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
 };
 
-const int16_t KNIGHT_SCORE[64] = {
+static const int16_t KNIGHT_SCORE[64] = {
     -5,   0,   0,   0,   0,   0,   0,  -5,
     -5,   0,   0,  10,  10,   0,   0,  -5,
     -5,   5,  20,  20,  20,  20,   5,  -5,
@@ -44,7 +45,7 @@ const int16_t KNIGHT_SCORE[64] = {
     -5, -10,   0,   0,   0,   0, -10,  -5,
 };
 
-const int16_t BISHOP_SCORE[64] = {
+static const int16_t BISHOP_SCORE[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   0,   0,   0,   0,   0,   0,
     0,  20,   0,  10,  10,   0,  20,   0,
@@ -55,7 +56,7 @@ const int16_t BISHOP_SCORE[64] = {
     0,   0, -10,   0,   0, -10,   0,   0,
 };
 
-const int16_t ROOK_SCORE[64] = {
+static const int16_t ROOK_SCORE[64] = {
     50,  50,  50,  50,  50,  50,  50,  50,
     50,  50,  50,  50,  50,  50,  50,  50,
     0,   0,  10,  20,  20,  10,   0,   0,
@@ -66,7 +67,7 @@ const int16_t ROOK_SCORE[64] = {
     0,   0,   0,  20,  20,   0,   0,   0,
 };
 
-const int16_t QUEEN_SCORE[64] = {
+static const int16_t QUEEN_SCORE[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   0,   0,   0,   0,   0,   0,
@@ -77,7 +78,7 @@ const int16_t QUEEN_SCORE[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
 };
 
-const int16_t KING_SCORE[64] = {
+static const int16_t KING_SCORE[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   5,   5,   5,   5,   0,   0,
     0,   5,   5,  10,  10,   5,   5,   0,
@@ -88,11 +89,11 @@ const int16_t KING_SCORE[64] = {
     0,   0,   5,   0, -15,   0,  10,   0,
 };
 
-const int16_t* PIECE_SQUARE_BONUS[6] = {
+static const int16_t* PIECE_SQUARE_BONUS[6] = {
     PAWN_SCORE, KNIGHT_SCORE, BISHOP_SCORE, ROOK_SCORE, QUEEN_SCORE, KING_SCORE
 };
 
-const u8 mirror_square[64] = {
+static const u8 mirror_square[64] = {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
     A3, B3, C3, D3, E3, F3, G3, H3,

@@ -114,15 +114,14 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     }
 
     if (depth == 0) {
-        // return evaluate(Pos);
-        return quiesence_search(Pos, alpha, beta, MAX_DEPTH_QUEIESENCE); 
+        return evaluate(Pos);
+        // return quiesence_search(Pos, alpha, beta, MAX_DEPTH_QUEIESENCE); 
     }
-
     int node_type = NODE_LOWER;
-
     S_Moves Moves;
     S_Board Board_copy;
     memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
+    
     generateMoves(Pos, &Moves);
     filter_illegal(Pos, &Moves);
     sort_moves(Pos, &Moves);

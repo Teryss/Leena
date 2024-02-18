@@ -83,9 +83,9 @@ typedef struct{
 }S_Board;
 
 typedef struct{
-    S_Board* Board;
     uint ply;
     u16 stateHistory[MAX_GAME_SIZE];
+    S_Board* Board;
     u8 enPassantSquare;
     u8 castlePermission;
     u8 fiftyMovesCounter;
@@ -120,7 +120,7 @@ typedef struct{
 
 typedef struct{
     S_TT_Entry* entries;
-    int count;
+    uint count;
 }S_TTable;
 
 // main.c
@@ -128,11 +128,10 @@ extern S_Masks Masks;
 void init_all();
 
 // bitboards.c
-// extern u64 sqrs[64];
 extern u64 between[64][64];
 extern u64 line[64][64];
-extern u64 ranks[8];
-extern u64 files[8];
+// extern u64 ranks[8];
+// extern u64 files[8];
 extern void init_bb();
 
 // board.c
@@ -158,13 +157,11 @@ extern u64 mask_bishop_attacks_on_the_fly(int square, u64 blockers);
 extern u64 mask_queen_attacks(int square);
 
 // constants.c
-extern const int16_t PIECE_VALUE[6];
 extern const uint BISHOP_PEXT_OFFSET[64];
 extern const uint ROOK_PEXT_OFFSET[64];
 extern const uint ROOK_RELEVANT_BITS_BY_SQUARE[64];
 extern const uint BISHOP_RELEVANT_BITS_BY_SQUARE[64];
 extern const uint CASTLING_CHANGE_ON_MOVE[64];
-extern const int16_t* PIECE_SQUARE_BONUS[6];
 
 // movegen.c
 #define GET_PIECE_FAILED_FLAG 15

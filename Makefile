@@ -3,10 +3,10 @@ OPTIONS = -march=native -mlzcnt -mbmi2 -Ofast
 OMIT = -fomit-frame-pointer
 
 all:
-	$(CC) -Wall -o Leena $(OPTIONS) $(OMIT) ./src/*.c
+	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
 
 run:
-	$(CC) -Wall -o Leena $(OPTIONS) $(OMIT) ./src/*.c
+	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
 	./Leena
 
 profile:

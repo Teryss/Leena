@@ -404,6 +404,11 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
             }
         }
 
+        /* if the piece is pinned,
+            we return line array entry indexed by 2 squares and we binary and it with to square. 
+            If none bit is set, it means to square isn't on the line and is illegal.
+
+        */
         if (_pin & sqrs(from_square)){
             return line[kingSquare][from_square] & sqrs(to_square);
         }
@@ -414,6 +419,7 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
 
 void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
     const u8 king_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us());
+    ASSERT(king_square >= 0 && king_square < 64);
     const u16* end = Moves->moves + Moves->count;
     const u64 _pins = pins(Pos, king_square);
     const u64 isInCheck = square_attackers(Pos, king_square);
