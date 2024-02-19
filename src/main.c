@@ -42,7 +42,7 @@ int main(){
 
     // perft_suite(&Pos);
     print_board(&Pos);
-    time_search(&Pos, kiwipete, 10);
+    time_search(&Pos, kiwipete, 7);
     // time_perft(&Pos, kiwipete, 6);
 
     free(TTable.entries);

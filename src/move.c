@@ -77,12 +77,15 @@ u8 make_move(S_Position* Pos, u16 move){
 
     Pos->Board->hash ^= TT_enpassant_hash[Pos->enPassantSquare % 8];
 
+    ASSERT(Pos->Board->pieceSet[fromSqr] < 6);
 
     if (fromSqr == toSqr)
         __builtin_unreachable();
 
     Pos->enPassantSquare = 0;
     if (Pos->sideToMove == WHITE){
+        Pos->Board->hash ^= TT_squares_hash[WHITE][Pos->Board->pieceSet[fromSqr]][fromSqr]
+            ^ TT_squares_hash[WHITE][Pos->Board->pieceSet[fromSqr]][toSqr];
         // Move the moving piece, update piece and color bb
         Pos->Board->colorBB[WHITE] ^= sqrs(fromSqr) | sqrs(toSqr);
         Pos->Board->piecesBB[Pos->Board->pieceSet[fromSqr]] ^= sqrs(fromSqr) | sqrs(toSqr);
@@ -90,8 +93,6 @@ u8 make_move(S_Position* Pos, u16 move){
         Pos->Board->pieceSet[toSqr] = Pos->Board->pieceSet[fromSqr];
         Pos->Board->pieceSet[fromSqr] = NO_PIECE;
 
-        Pos->Board->hash ^= TT_squares_hash[WHITE][Pos->Board->pieceSet[fromSqr]][fromSqr]
-            ^ TT_squares_hash[WHITE][Pos->Board->pieceSet[fromSqr]][toSqr];
 
         switch (MOVE_GET_FLAG(move)) {
             case QUIET:
@@ -162,15 +163,14 @@ u8 make_move(S_Position* Pos, u16 move){
         }   
         Pos->sideToMove = BLACK;
     }else{
+        Pos->Board->hash ^= TT_squares_hash[BLACK][Pos->Board->pieceSet[fromSqr]][fromSqr]
+            ^ TT_squares_hash[BLACK][Pos->Board->pieceSet[fromSqr]][toSqr];
         // Move the moving piece, update piece and color bb
         Pos->Board->colorBB[BLACK] ^= sqrs(fromSqr) | sqrs(toSqr);
         Pos->Board->piecesBB[Pos->Board->pieceSet[fromSqr]] ^= sqrs(fromSqr) | sqrs(toSqr);
         // Update piece set
         Pos->Board->pieceSet[toSqr] = Pos->Board->pieceSet[fromSqr];
         Pos->Board->pieceSet[fromSqr] = NO_PIECE;
-        
-        Pos->Board->hash ^= TT_squares_hash[BLACK][Pos->Board->pieceSet[fromSqr]][fromSqr]
-            ^ TT_squares_hash[BLACK][Pos->Board->pieceSet[fromSqr]][toSqr];
 
         switch (MOVE_GET_FLAG(move)) {
             case QUIET:

@@ -6,7 +6,7 @@ all:
 	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
 
 run:
-	$(CC) -o Leena $(OPTIONS) $(OMIT) ./src/*.c
+	$(CC) -Wall -o Leena $(OPTIONS) $(OMIT) ./src/*.c
 	./Leena
 
 profile:
@@ -14,7 +14,7 @@ profile:
 	./Leena
 
 debug:
-	$(CC) -Wall -o Leena -march=native -g ./src/*.c
+	$(CC) -Wall -O0 -o Leena -march=native -g ./src/*.c
 	
 asm:
 	$(CC) -S -fverbose-asm  -fopt-info-vec-optimized $(OPTIONS) $(OMIT) ./src/*.c

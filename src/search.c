@@ -82,7 +82,6 @@ S_Move search(S_Position* Pos, uint depth){
     filter_illegal(Pos, &Moves);
     sort_moves(Pos, &Moves);
     u16 state = encode_state(Pos);
-    ASSERT(isKingPresent(Pos));
 
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
