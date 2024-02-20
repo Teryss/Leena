@@ -6,9 +6,8 @@
 
 #define INFINITE 1000000
 #define MAX_DEPTH_QUEIESENCE 6
-#define NO_HASH_ENTRY 123456
+#define NO_HASH_ENTRY 999991
 
-// u64 hash_collision = 0;
 u64 total_nodes_searched = 0;
 
 S_Move search(S_Position* Pos, uint depth);
@@ -113,8 +112,8 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     }
 
     if (depth == 0) {
-        return evaluate(Pos);
-        // return quiesence_search(Pos, alpha, beta, MAX_DEPTH_QUEIESENCE); 
+        // return evaluate(Pos);
+        return quiesence_search(Pos, alpha, beta, MAX_DEPTH_QUEIESENCE); 
     }
     int node_type = NODE_LOWER;
     S_Moves Moves;

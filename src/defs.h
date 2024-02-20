@@ -39,6 +39,7 @@ exit(1);}
 
 #define ROW_COL_TO_SQR(row, col) (row * 8 + col)
 #define MAX_GAME_SIZE 2048
+#define MAX_SEARCH_DEPTH 64
 
 #define STARTING_POSITION_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #define kiwipete "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
@@ -83,8 +84,13 @@ typedef struct{
 }S_Board;
 
 typedef struct{
+    u16 pvArray[MAX_SEARCH_DEPTH][MAX_SEARCH_DEPTH];
+    u8 pvLength[MAX_SEARCH_DEPTH];
+}S_PV;
+
+typedef struct{
+    S_PV PV;
     uint ply;
-    u16 stateHistory[MAX_GAME_SIZE];
     S_Board* Board;
     u8 enPassantSquare;
     u8 castlePermission;
@@ -208,7 +214,6 @@ extern u64 TT_enpassant_hash[8];
 extern u64 TT_side_to_move_hash;
 extern void init_TT();
 extern void hash_position(S_Position* Pos);
-extern u64 pins(const S_Position* const Pos, u8 king_square);
 
 // uci.c
 void uci_loop();

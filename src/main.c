@@ -9,7 +9,6 @@
 
 S_Masks Masks;
 
-// void init_all();
 void time_perft(S_Position* Pos, const char* FEN, int depth);
 void time_search(S_Position* Pos, const char* FEN, int depth);
 void comparePositions(S_Position* Pos, S_Position* PreviousPosition);
@@ -36,19 +35,23 @@ int main(){
     S_Position Pos = {.Board = &Board};
     init_all();
 
-    u8 err = load_fen(&Pos,kiwipete);
-    if (err)
-        printf("Error while loading FEN string: %s\n", decodeFenError(err));
+    // u8 err = load_fen(&Pos,kiwipete);
+    // if (err)
+    //     printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
     // perft_suite(&Pos);
-    print_board(&Pos);
+    // print_board(&Pos);
     time_search(&Pos, kiwipete, 7);
     // time_perft(&Pos, kiwipete, 6);
+
+    // uci_loop();
 
     free(TTable.entries);
 }
 
 void init_all(){
+    // memset(Pos->PV.pvArray, 0, sizeof(u16) * MAX_SEARCH_DEPTH * MAX_SEARCH_DEPTH);
+    // memset(Pos->PV.pvLength, 0, sizeof(u8) * MAX_SEARCH_DEPTH);
     init_masks();
     init_bb();
     init_TT();
@@ -56,15 +59,14 @@ void init_all(){
 }
 
 void comparePositions(S_Position* Pos, S_Position* PreviousPosition){
-    printf("== 0 means they're equal ==\nPosition comparison:\nWhole position: %d\nBoard*: %d\nCastlePermission: %d\nenPassantSquare: %d\nfiftyMoves: %d\nply: %d\nsideToMove: %d\nstateHistory: %d\n\n",
+    printf("== 0 means they're equal ==\nPosition comparison:\nWhole position: %d\nBoard*: %d\nCastlePermission: %d\nenPassantSquare: %d\nfiftyMoves: %d\nply: %d\nsideToMove: %d\n\n",
         memcmp(Pos, PreviousPosition, sizeof(S_Position)),
         Pos->Board != PreviousPosition->Board,
         Pos->castlePermission != PreviousPosition->castlePermission,
         Pos->enPassantSquare != PreviousPosition->enPassantSquare,
         Pos->fiftyMovesCounter != PreviousPosition->fiftyMovesCounter,
         Pos->ply != PreviousPosition->ply,
-        Pos->sideToMove != PreviousPosition->sideToMove,
-        memcmp(Pos->stateHistory, PreviousPosition->stateHistory, sizeof(u16) * MAX_GAME_SIZE)
+        Pos->sideToMove != PreviousPosition->sideToMove
     );
 
     printf("Board comparison:\nWhole board: %d\n", memcmp(Pos->Board, PreviousPosition->Board, sizeof(S_Board)));

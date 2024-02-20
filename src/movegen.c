@@ -317,7 +317,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     }
 }
 
-u64 pins(const S_Position* const Pos, u8 king_square){
+static inline u64 pins(const S_Position* const Pos, u8 king_square){
     u64 xRayAttackers = (
         (((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) & get_rook_attacks(0, king_square)) | 
         (((Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) & get_bishop_attacks(0, king_square))
@@ -352,6 +352,7 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
             return 0;
         }
         return 1;
+    }else if (checkers){
     /* if it's a check we can:
         King:
             move a king
@@ -361,7 +362,6 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
             capture attacking piece
             *special case en passant
     */
-    }else if (checkers){
         if (from_square == kingSquare){
             // check if captures wit king work properly
             if (is_square_attacked_custom(
@@ -394,9 +394,9 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
                 const u8 enemyPawnSq = to_square + 8 - 16 * Pos->sideToMove;
 
                 // We clear enemy pawn and our pawn and check if the king is attack horizontaly
-                // Discovered checks vertivaly are handled by pins itself like any other capture
+                // Discovered checks verticaly are handled by pins itself like any other capture
                 if (get_rook_attacks(Pos->Board->colorBB[BOTH] ^ sqrs(enemyPawnSq) ^ sqrs(from_square), kingSquare) 
-                    & (RANK_1 << (from_square / 8) * 8) 
+                    & (RANK_1 << (from_square / 8) * 8) //vertical line
                     & ((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy())){
                     return 0;
                 }
@@ -407,7 +407,6 @@ static inline u64 CONST is_legal(const S_Position* Pos, u8 kingSquare, u16 Move,
         /* if the piece is pinned,
             we return line array entry indexed by 2 squares and we binary and it with to square. 
             If none bit is set, it means to square isn't on the line and is illegal.
-
         */
         if (_pin & sqrs(from_square)){
             return line[kingSquare][from_square] & sqrs(to_square);
@@ -432,8 +431,7 @@ void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
             Moves->count--;
             continue;
         }
-        *lastMove = *currentMove;
-        lastMove++;
+        *lastMove++ = *currentMove;
     }
 }
 
