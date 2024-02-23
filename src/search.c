@@ -82,6 +82,8 @@ S_Move search(S_Position* Pos, uint depth){
     sort_moves(Pos, &Moves);
     u16 state = encode_state(Pos);
 
+    // Pos->PV.pvLength[Pos->ply] = Pos->ply;
+
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
         ASSERT(isKingPresent(Pos));
@@ -89,16 +91,24 @@ S_Move search(S_Position* Pos, uint depth){
         total_nodes_searched++;
         eval = -alpha_beta(Pos, alpha, beta, depth - 1);
 
+        memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
+        restore_state(Pos, state);
+
         if (eval > best_eval){
             best_eval = eval;
             best_move_index = i;
+
+            printf("Search ply insert: %d\n", Pos->ply);
+            Pos->PV.pvArray[Pos->ply][Pos->ply] = Moves.moves[i];
+            for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.pvLength[Pos->ply + 1]; next_ply++)
+                Pos->PV.pvArray[Pos->ply][next_ply] = Pos->PV.pvArray[Pos->ply + 1][next_ply];
+            
+            Pos->PV.pvLength[Pos->ply] = Pos->PV.pvLength[Pos->ply + 1];
         }
         
-        if (eval > alpha)
+        if (eval > alpha){
             alpha = eval;
-
-        memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
-        restore_state(Pos, state);
+        }
     }
 
     S_Move Best_move = {Moves.moves[best_move_index], best_eval};
@@ -110,7 +120,7 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     if ((eval = get_TT_entry_score(Pos->Board, alpha, beta, depth)) != NO_HASH_ENTRY){
         return eval;
     }
-
+    
     if (depth == 0) {
         // return evaluate(Pos);
         return quiesence_search(Pos, alpha, beta, MAX_DEPTH_QUEIESENCE); 
@@ -125,6 +135,7 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     sort_moves(Pos, &Moves);
 
     u16 state = encode_state(Pos);
+    Pos->PV.pvLength[Pos->ply] = Pos->ply;
 
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
@@ -144,6 +155,12 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
         if (eval > alpha){
             alpha = eval;
             node_type = NODE_EXACT;
+
+            Pos->PV.pvArray[Pos->ply][Pos->ply] = Moves.moves[i];
+            for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.pvLength[Pos->ply + 1]; next_ply++)
+                Pos->PV.pvArray[Pos->ply][next_ply] = Pos->PV.pvArray[Pos->ply + 1][next_ply];
+            
+            Pos->PV.pvLength[Pos->ply] = Pos->PV.pvLength[Pos->ply + 1];
         }
 
         restore_state(Pos, state);

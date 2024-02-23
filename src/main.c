@@ -34,14 +34,19 @@ int main(){
     S_Board Board;
     S_Position Pos = {.Board = &Board};
     init_all();
+    memset(Pos.PV.pvArray, 0, sizeof(u16) * MAX_SEARCH_DEPTH * MAX_SEARCH_DEPTH);
+    memset(Pos.PV.pvLength, 0, sizeof(u8) * MAX_SEARCH_DEPTH);
 
-    // u8 err = load_fen(&Pos,kiwipete);
-    // if (err)
-    //     printf("Error while loading FEN string: %s\n", decodeFenError(err));
+
+
+    u8 err = load_fen(&Pos,kiwipete);
+    if (err)
+        printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
     // perft_suite(&Pos);
-    // print_board(&Pos);
-    time_search(&Pos, kiwipete, 7);
+    print_board(&Pos);
+
+    time_search(&Pos, kiwipete, 6);
     // time_perft(&Pos, kiwipete, 6);
 
     // uci_loop();
@@ -50,8 +55,6 @@ int main(){
 }
 
 void init_all(){
-    // memset(Pos->PV.pvArray, 0, sizeof(u16) * MAX_SEARCH_DEPTH * MAX_SEARCH_DEPTH);
-    // memset(Pos->PV.pvLength, 0, sizeof(u8) * MAX_SEARCH_DEPTH);
     init_masks();
     init_bb();
     init_TT();
@@ -89,6 +92,13 @@ void time_perft(S_Position* Pos, const char* FEN, int depth){
     printf("%0.2f MNodes/second\n", ((double)nodes / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
 }
 
+void shortMovePrint(u16 move){
+    printf("%s%s", 
+        squares_int_to_chr[MOVE_FROM_SQUARE(move)],
+        squares_int_to_chr[MOVE_TO_SQUARE(move)]
+    );  
+}
+
 void time_search(S_Position* Pos, const char* FEN, int depth){
     load_fen(Pos, FEN);
     clock_t start = clock();
@@ -98,4 +108,14 @@ void time_search(S_Position* Pos, const char* FEN, int depth){
     printf("Score: %0.2f\n", (double)best_move.score/100);
     printf("Search took: %f seconds, total nodes: %"PRIu64"\n", (double)(end - start) / CLOCKS_PER_SEC, total_nodes_searched);
     printf("%0.2f MNodes/second\n", ((double)total_nodes_searched / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
+
+    printf("info score cp %d depth %d nodes %"PRIu64" pv\n", best_move.score, depth, total_nodes_searched);
+    for (int i = 0; i < 8; i++){
+        printf("PVLength: %d\n", Pos->PV.pvLength[i]);
+        for (int j = 0; j < 8; j++){
+            shortMovePrint(Pos->PV.pvArray[i][j]);
+            printf(" ");
+        }
+        printf("\n");
+    }
 }

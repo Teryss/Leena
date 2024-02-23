@@ -131,30 +131,30 @@ void reset(S_Position* pos){
 }
 
 void print_board(const S_Position* Pos){
-    // for (int r = 0; r < 8; r++){
-    //     printf("%d ", 8 - r);
+    for (int r = 0; r < 8; r++){
+        printf("%d ", 8 - r);
 
-    //     for (int c = 0; c < 8; c++){
-    //         printf(" %c ", 
-    //             pieces_int_to_chr[
-    //                 Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] + (Pos->Board->colorBB[WHITE] & sqrs(ROW_COL_TO_SQR(r, c)) ? 6 : 0)
-    //             ]
-    //         );
-    //     }
-    //     printf("\n");
-    // }
+        for (int c = 0; c < 8; c++){
+            printf(" %c ", 
+                pieces_int_to_chr[
+                    Pos->Board->pieceSet[ROW_COL_TO_SQR(r, c)] + (Pos->Board->colorBB[WHITE] & sqrs(ROW_COL_TO_SQR(r, c)) ? 6 : 0)
+                ]
+            );
+        }
+        printf("\n");
+    }
 
-    // printf("\n   A  B  C  D  E  F  G  H\n\n");
-    // printf("Hash: %"PRIx64"\n",Pos->Board->hash);
-    // printf("En passant square: %s\n", Pos->enPassantSquare == 0 ? "-" : squares_int_to_chr[Pos->enPassantSquare]);
-    // printf("Castling rights: %c%c%c%c\n", 
-    //     Pos->castlePermission & wk ? 'K' : '-',
-    //     Pos->castlePermission & wq ? 'Q' : '-',
-    //     Pos->castlePermission & bk ? 'k' : '-',
-    //     Pos->castlePermission & bq ? 'q' : '-');
-    // printf("Side to move: %s\n", Pos->sideToMove == WHITE ? "White" : "Black");
-    // printf("Fifty moves counter: %d\n", Pos->fiftyMovesCounter);
-    // printf("Half moves total: %d\n", Pos->ply);
+    printf("\n   A  B  C  D  E  F  G  H\n\n");
+    printf("Hash: %"PRIx64"\n",Pos->Board->hash);
+    printf("En passant square: %s\n", Pos->enPassantSquare == 0 ? "-" : squares_int_to_chr[Pos->enPassantSquare]);
+    printf("Castling rights: %c%c%c%c\n", 
+        Pos->castlePermission & wk ? 'K' : '-',
+        Pos->castlePermission & wq ? 'Q' : '-',
+        Pos->castlePermission & bk ? 'k' : '-',
+        Pos->castlePermission & bq ? 'q' : '-');
+    printf("Side to move: %s\n", Pos->sideToMove == WHITE ? "White" : "Black");
+    printf("Fifty moves counter: %d\n", Pos->fiftyMovesCounter);
+    printf("Half moves total: %d\n", Pos->ply);
 }
 
 void print_bitboard(u64 bitboard){
