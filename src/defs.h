@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <x86intrin.h>
 
-#define DEBUG
+// #define DEBUG
 
 #ifndef DEBUG
 #define ASSERT(n)
@@ -84,8 +84,8 @@ typedef struct{
 }S_Board;
 
 typedef struct{
-    u16 pvArray[MAX_SEARCH_DEPTH][MAX_SEARCH_DEPTH];
-    u8 pvLength[MAX_SEARCH_DEPTH];
+    u16 nodes[MAX_SEARCH_DEPTH][MAX_SEARCH_DEPTH];
+    u8 length[MAX_SEARCH_DEPTH];
 }S_PV;
 
 typedef struct{

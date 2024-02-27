@@ -73,6 +73,7 @@ u64 isKingPresent(S_Position* Pos){
 
 S_Move search(S_Position* Pos, uint depth){
     i32 best_eval = -INFINITE, eval, best_move_index = 0, alpha = -INFINITE, beta = INFINITE;
+    Pos->ply = 0;
 
     S_Moves Moves;
     S_Board Board_copy;
@@ -82,7 +83,7 @@ S_Move search(S_Position* Pos, uint depth){
     sort_moves(Pos, &Moves);
     u16 state = encode_state(Pos);
 
-    // Pos->PV.pvLength[Pos->ply] = Pos->ply;
+    Pos->PV.length[Pos->ply] = Pos->ply;
 
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
@@ -92,18 +93,18 @@ S_Move search(S_Position* Pos, uint depth){
         eval = -alpha_beta(Pos, alpha, beta, depth - 1);
 
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
-        restore_state(Pos, state);
 
+        restore_state(Pos, state);
         if (eval > best_eval){
             best_eval = eval;
             best_move_index = i;
 
-            printf("Search ply insert: %d\n", Pos->ply);
-            Pos->PV.pvArray[Pos->ply][Pos->ply] = Moves.moves[i];
-            for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.pvLength[Pos->ply + 1]; next_ply++)
-                Pos->PV.pvArray[Pos->ply][next_ply] = Pos->PV.pvArray[Pos->ply + 1][next_ply];
+            Pos->PV.nodes[Pos->ply][Pos->ply] = Moves.moves[i];
+
+            for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.length[Pos->ply + 1]; next_ply++)
+                Pos->PV.nodes[Pos->ply][next_ply] = Pos->PV.nodes[Pos->ply + 1][next_ply];
             
-            Pos->PV.pvLength[Pos->ply] = Pos->PV.pvLength[Pos->ply + 1];
+            Pos->PV.length[Pos->ply] = Pos->PV.length[Pos->ply + 1];
         }
         
         if (eval > alpha){
@@ -116,6 +117,7 @@ S_Move search(S_Position* Pos, uint depth){
 }
 
 static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
+    Pos->PV.length[Pos->ply] = Pos->ply;
     i32 eval;
     if ((eval = get_TT_entry_score(Pos->Board, alpha, beta, depth)) != NO_HASH_ENTRY){
         return eval;
@@ -135,7 +137,6 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     sort_moves(Pos, &Moves);
 
     u16 state = encode_state(Pos);
-    Pos->PV.pvLength[Pos->ply] = Pos->ply;
 
     for (int i = 0; i < Moves.count; i++){
         make_move(Pos, Moves.moves[i]);
@@ -151,19 +152,19 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
             restore_state(Pos, state);
             return beta;
         }
+        restore_state(Pos, state);
         
         if (eval > alpha){
             alpha = eval;
             node_type = NODE_EXACT;
+            Pos->PV.nodes[Pos->ply][Pos->ply] = Moves.moves[i];
 
-            Pos->PV.pvArray[Pos->ply][Pos->ply] = Moves.moves[i];
-            for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.pvLength[Pos->ply + 1]; next_ply++)
-                Pos->PV.pvArray[Pos->ply][next_ply] = Pos->PV.pvArray[Pos->ply + 1][next_ply];
+            for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.length[Pos->ply + 1]; next_ply++)
+                Pos->PV.nodes[Pos->ply][next_ply] = Pos->PV.nodes[Pos->ply + 1][next_ply];
             
-            Pos->PV.pvLength[Pos->ply] = Pos->PV.pvLength[Pos->ply + 1];
+            Pos->PV.length[Pos->ply] = Pos->PV.length[Pos->ply + 1];
         }
 
-        restore_state(Pos, state);
         memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
     }
     put_TT_entry(Pos->Board->hash, alpha, node_type, depth);

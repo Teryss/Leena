@@ -34,8 +34,8 @@ int main(){
     S_Board Board;
     S_Position Pos = {.Board = &Board};
     init_all();
-    memset(Pos.PV.pvArray, 0, sizeof(u16) * MAX_SEARCH_DEPTH * MAX_SEARCH_DEPTH);
-    memset(Pos.PV.pvLength, 0, sizeof(u8) * MAX_SEARCH_DEPTH);
+    memset(Pos.PV.nodes, 0, sizeof(u16) * MAX_SEARCH_DEPTH * MAX_SEARCH_DEPTH);
+    memset(Pos.PV.length, 0, sizeof(u8) * MAX_SEARCH_DEPTH);
 
 
 
@@ -104,18 +104,22 @@ void time_search(S_Position* Pos, const char* FEN, int depth){
     clock_t start = clock();
     S_Move best_move = search(Pos, depth);
     clock_t end = clock();
-    print_move(Pos->Board, best_move.move);
-    printf("Score: %0.2f\n", (double)best_move.score/100);
-    printf("Search took: %f seconds, total nodes: %"PRIu64"\n", (double)(end - start) / CLOCKS_PER_SEC, total_nodes_searched);
-    printf("%0.2f MNodes/second\n", ((double)total_nodes_searched / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
+    // print_move(Pos->Board, best_move.move);
+    printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    printf("info score cp %d depth %d nodes %"PRIu64" pv\n", best_move.score, depth, total_nodes_searched);
-    for (int i = 0; i < 8; i++){
-        printf("PVLength: %d\n", Pos->PV.pvLength[i]);
-        for (int j = 0; j < 8; j++){
-            shortMovePrint(Pos->PV.pvArray[i][j]);
-            printf(" ");
-        }
-        printf("\n");
+    printf("info score cp %d depth %d nodes %"PRIu64" pv ", best_move.score, depth, total_nodes_searched);
+    for (int i = 0; i < Pos->PV.length[0]; i++){
+        shortMovePrint(Pos->PV.nodes[0][i]);
+        printf(" ");
     }
+    printf("\n");
+
+    // for (int i = 0; i < 8; i++){
+    //     printf("length: %d\n", Pos->PV.length[i]);
+    //     for (int j = 0; j < 8; j++){
+    //         shortMovePrint(Pos->PV.nodes[i][j]);
+    //         printf(" ");
+    //     }
+    //     printf("\n");
+    // }
 }
