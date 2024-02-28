@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#define LAST_BEST_MOVE_BONUS 20000 
 #define CAPTURE_BONUS 10000
 #define FIRST_KILLER_MOVE_BONUS 9000
 #define SECOND_KILLER_MOVE_BONUS 8000
 
 u32 killer_moves[MAX_GAME_SIZE][2];
+
+static uint scores[256];
 
 static const uint MVV_LVA[6][6] = {
     {105, 205, 305, 405, 505, 605},
@@ -135,11 +138,8 @@ i32 evaluate(S_Position* Pos){
     return eval * side_multiplier;
 }
 
-uint scores[256];
-
 void sort_moves(const S_Position* const Pos, S_Moves* Moves){
     u16 temp_move;
-    // uint scores[256];
     uint temp_score;
 
     for (int i = 0; i < Moves->count; i++){
@@ -178,7 +178,7 @@ void sort_moves(const S_Position* const Pos, S_Moves* Moves){
 
 void sort_captures(const S_Position* const Pos, S_Moves* Moves){
     u64 temp_move;
-    uint scores[256];
+    // uint scores[256];
     uint temp_score;
 
     for (int i = 0; i < Moves->count; i++){

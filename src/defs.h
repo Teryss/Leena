@@ -198,6 +198,7 @@ extern u64 perft(S_Position* Pos, uint depth);
 // search.c
 extern u64 total_nodes_searched;
 extern S_Move search(S_Position* Pos, uint depth);
+extern i32 iterative_deepening(S_Position* Pos, uint max_depth);
 
 // eval.c
 extern u32 killer_moves[MAX_GAME_SIZE][2];
@@ -205,6 +206,7 @@ extern i32 evaluate(S_Position* Pos);
 extern void clear_killer_moves();
 extern void sort_moves(const S_Position* const Pos, S_Moves* Moves);
 extern void sort_captures(const S_Position* const Pos, S_Moves* Moves);
+// extern void sort_afterSearch(const S_Position* const Pos, S_Moves* Moves, u16 lastBestMove);
 
 // ttable.c
 extern S_TTable TTable;

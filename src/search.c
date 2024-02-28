@@ -1,11 +1,10 @@
 #include "defs.h"
-// #include <stdio.h>
-#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define INFINITE 1000000
-#define MAX_DEPTH_QUEIESENCE 6
+#define MAX_DEPTH_QUEIESENCE 4
 #define NO_HASH_ENTRY 999991
 
 u64 total_nodes_searched = 0;
@@ -67,10 +66,6 @@ static INLINE u8 isReadyToPromote(S_Position* Pos){
     return 0;
 }
 
-u64 isKingPresent(S_Position* Pos){
-    return COUNT_BITS(Pos->Board->piecesBB[k] & Pos->Board->colorBB[1 - Pos->sideToMove]);
-}
-
 S_Move search(S_Position* Pos, uint depth){
     i32 best_eval = -INFINITE, eval, best_move_index = 0, alpha = -INFINITE, beta = INFINITE;
     Pos->ply = 0;
@@ -116,6 +111,77 @@ S_Move search(S_Position* Pos, uint depth){
     return Best_move;
 }
 
+static INLINE void sort_afterSearch(const S_Position* const Pos, S_Moves* Moves){
+    u16 temp_move;
+
+    for (int i = 0; i < Moves->count; i++){
+        if (Moves->moves[i] == Pos->PV.nodes[0][Pos->ply]){
+            temp_move = Moves->moves[0];
+            Moves->moves[0] = Moves->moves[i];
+            Moves->moves[i] = temp_move;
+            return;
+        }
+    }
+            // printf("Ply: %i\n", Pos->ply);
+            // print_move(Pos->Board, Moves->moves[0]);
+}
+
+i32 iterative_deepening(S_Position* Pos, uint max_depth){
+    i32 best_eval = -INFINITE, eval, alpha, beta = INFINITE;
+    Pos->ply = 0;
+
+    S_Moves Moves;
+    S_Board Board_copy;
+    memcpy(&Board_copy, Pos->Board, sizeof(S_Board));
+    generateMoves(Pos, &Moves);
+    filter_illegal(Pos, &Moves);
+    sort_moves(Pos, &Moves);
+    u16 state = encode_state(Pos);
+
+    for (int depth = 1; depth < max_depth + 1; depth++){
+        Pos->PV.length[Pos->ply] = Pos->ply;
+        alpha = -INFINITE;
+        best_eval = -INFINITE;
+        total_nodes_searched = 0;
+
+        for (int i = 0; i < Moves.count; i++){
+            make_move(Pos, Moves.moves[i]);
+            total_nodes_searched++;
+            eval = -alpha_beta(Pos, alpha, beta, depth - 1);
+
+            memcpy(Pos->Board, &Board_copy, sizeof(S_Board));
+
+            restore_state(Pos, state);
+            if (eval > best_eval){
+                best_eval = eval;
+
+                Pos->PV.nodes[Pos->ply][Pos->ply] = Moves.moves[i];
+                for (int next_ply = Pos->ply + 1; next_ply < Pos->PV.length[Pos->ply + 1]; next_ply++)
+                    Pos->PV.nodes[Pos->ply][next_ply] = Pos->PV.nodes[Pos->ply + 1][next_ply];
+
+                Pos->PV.length[Pos->ply] = Pos->PV.length[Pos->ply + 1];
+            }
+            
+            if (eval > alpha){
+                alpha = eval;
+            }
+
+        }
+        sort_afterSearch(Pos, &Moves);
+        printf("info score cp %d depth %d nodes %"PRIu64" pv ", best_eval, depth, total_nodes_searched);
+        for (int i = 0; i < depth; i++){
+            printf("%s%s ", 
+                squares_int_to_chr[MOVE_FROM_SQUARE(Pos->PV.nodes[0][i])],
+                squares_int_to_chr[MOVE_TO_SQUARE(Pos->PV.nodes[0][i])]
+            );  
+        }
+        printf("\n");
+
+    }
+
+    return best_eval;
+}
+
 static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     Pos->PV.length[Pos->ply] = Pos->ply;
     i32 eval;
@@ -135,6 +201,7 @@ static i32 alpha_beta(S_Position* Pos, i32 alpha, i32 beta, i32 depth){
     generateMoves(Pos, &Moves);
     filter_illegal(Pos, &Moves);
     sort_moves(Pos, &Moves);
+        // sort_afterSearch(Pos, &Moves);
 
     u16 state = encode_state(Pos);
 

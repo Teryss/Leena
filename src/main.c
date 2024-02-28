@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +10,6 @@ S_Masks Masks;
 
 void time_perft(S_Position* Pos, const char* FEN, int depth);
 void time_search(S_Position* Pos, const char* FEN, int depth);
-void comparePositions(S_Position* Pos, S_Position* PreviousPosition);
 
 static inline const char* decodeFenError(u8 flag){
     switch (flag){
@@ -43,12 +41,12 @@ int main(){
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
-    // perft_suite(&Pos);
-    print_board(&Pos);
+    clock_t start = clock();
+    iterative_deepening(&Pos, 7);
+    clock_t end = clock();
+    printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    time_search(&Pos, kiwipete, 6);
-    // time_perft(&Pos, kiwipete, 6);
-
+    // time_search(&Pos, kiwipete, 7);
     // uci_loop();
 
     free(TTable.entries);
@@ -61,27 +59,6 @@ void init_all(){
     clear_killer_moves();
 }
 
-void comparePositions(S_Position* Pos, S_Position* PreviousPosition){
-    printf("== 0 means they're equal ==\nPosition comparison:\nWhole position: %d\nBoard*: %d\nCastlePermission: %d\nenPassantSquare: %d\nfiftyMoves: %d\nply: %d\nsideToMove: %d\n\n",
-        memcmp(Pos, PreviousPosition, sizeof(S_Position)),
-        Pos->Board != PreviousPosition->Board,
-        Pos->castlePermission != PreviousPosition->castlePermission,
-        Pos->enPassantSquare != PreviousPosition->enPassantSquare,
-        Pos->fiftyMovesCounter != PreviousPosition->fiftyMovesCounter,
-        Pos->ply != PreviousPosition->ply,
-        Pos->sideToMove != PreviousPosition->sideToMove
-    );
-
-    printf("Board comparison:\nWhole board: %d\n", memcmp(Pos->Board, PreviousPosition->Board, sizeof(S_Board)));
-    printf("PiecesBB: %d\nColorBB: %d\nPieceSet: %d\nHash: %d\n", 
-        memcmp(Pos->Board->piecesBB, PreviousPosition->Board->piecesBB, sizeof(u64) * 6),
-        memcmp(Pos->Board->colorBB, PreviousPosition->Board->colorBB, sizeof(u64) * 3),
-        memcmp(Pos->Board->pieceSet, PreviousPosition->Board->pieceSet, sizeof(u8) * 64),
-        Pos->Board->hash != PreviousPosition->Board->hash
-    );
-    printf("====\n");
-}
-
 void time_perft(S_Position* Pos, const char* FEN, int depth){
     load_fen(Pos, FEN);
     clock_t start = clock();
@@ -92,34 +69,19 @@ void time_perft(S_Position* Pos, const char* FEN, int depth){
     printf("%0.2f MNodes/second\n", ((double)nodes / 1000000) / ((double)(end - start) / CLOCKS_PER_SEC));
 }
 
-void shortMovePrint(u16 move){
-    printf("%s%s", 
-        squares_int_to_chr[MOVE_FROM_SQUARE(move)],
-        squares_int_to_chr[MOVE_TO_SQUARE(move)]
-    );  
-}
-
 void time_search(S_Position* Pos, const char* FEN, int depth){
     load_fen(Pos, FEN);
     clock_t start = clock();
     S_Move best_move = search(Pos, depth);
     clock_t end = clock();
-    // print_move(Pos->Board, best_move.move);
     printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
     printf("info score cp %d depth %d nodes %"PRIu64" pv ", best_move.score, depth, total_nodes_searched);
     for (int i = 0; i < Pos->PV.length[0]; i++){
-        shortMovePrint(Pos->PV.nodes[0][i]);
-        printf(" ");
+        printf("%s%s ", 
+            squares_int_to_chr[MOVE_FROM_SQUARE(Pos->PV.nodes[0][i])],
+            squares_int_to_chr[MOVE_TO_SQUARE(Pos->PV.nodes[0][i])]
+        );  
     }
     printf("\n");
-
-    // for (int i = 0; i < 8; i++){
-    //     printf("length: %d\n", Pos->PV.length[i]);
-    //     for (int j = 0; j < 8; j++){
-    //         shortMovePrint(Pos->PV.nodes[i][j]);
-    //         printf(" ");
-    //     }
-    //     printf("\n");
-    // }
 }

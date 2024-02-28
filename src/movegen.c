@@ -7,6 +7,10 @@
 #define RANK_7 (RANK_1 << (8 * 6))
 #define RANK_8 (RANK_1 << (8 * 7))
 
+#define us() (Pos->Board->colorBB[Pos->sideToMove])
+#define enemy() (Pos->Board->colorBB[1 - Pos->sideToMove])
+#define shift(bb, n) ((n) > 0 ? (bb) << (n) : (bb) >> -(n))
+
 /* MOVE ENCODING - 16 bits
 
     0000 0000 0000 0000 0000 0000 0011 1111 - from square 
@@ -14,10 +18,6 @@
     0000 0000 0000 0000 1111 0000 0000 0000 - move flag
 
 */
-
-#define us() (Pos->Board->colorBB[Pos->sideToMove])
-#define enemy() (Pos->Board->colorBB[1 - Pos->sideToMove])
-#define shift(bb, n) ((n) > 0 ? (bb) << (n) : (bb) >> -(n))
 
 INLINE CONST u16 encode_move(u8 from_square, u8 to_square, u8 move_flag){
     return (u16)(
