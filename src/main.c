@@ -36,16 +36,17 @@ int main(){
     memset(Pos.PV.length, 0, sizeof(u8) * MAX_SEARCH_DEPTH);
 
 
-
     u8 err = load_fen(&Pos,kiwipete);
     if (err)
         printf("Error while loading FEN string: %s\n", decodeFenError(err));
 
-    clock_t start = clock();
-    iterative_deepening(&Pos, 7);
-    clock_t end = clock();
-    printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
+    // clock_t start = clock();
+    // iterative_deepening(&Pos, 7);
+    // clock_t end = clock();
+    // printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
+    getchar();
+    time_perft(&Pos, kiwipete, 5);
     // time_search(&Pos, kiwipete, 7);
     // uci_loop();
 

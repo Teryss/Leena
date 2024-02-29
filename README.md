@@ -20,6 +20,8 @@ Supported since Haswell and Evador by intel and AMD respectively.
 - Alpha-beta pruning.
 - Dynamically allocated Transposition table with always replace scheme.
 - Quiesence search with depth limitation supported by delta pruning.
+- Quadratic PV table.
+- Iterative deepening.
 
 ### Evaluation:
 - Killer heuristics.
@@ -70,8 +72,6 @@ Black pawns | White pawns:
 
 ## TODO
 - Support UCI protocol.
-- Principle variotions.
-- Iterative deepening.
 - Repetition detection.
 - Evaluation enhancements
   - Mobility bonus

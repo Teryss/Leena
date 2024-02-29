@@ -10,8 +10,8 @@ run:
 	./Leena
 
 profile:
-	$(CC) -p -g -o Leena $(OPTIONS) ./src/*.c
-	./Leena
+	$(CC) -p -g -o Leena.bin $(OPTIONS) ./src/*.c
+	./Leena.bin
 
 debug:
 	$(CC) -Wall -O0 -o Leena -march=native -g ./src/*.c

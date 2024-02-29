@@ -2,14 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char* commands[] = {
-    "uci",
-};
 static char command[128];
 static char* to_write = &command[1];
-static const char* test = "bruh";
 
-#define READ_INPUT() scanf("%127[^\n]", to_write)
+#define READ_INPUT(to_write) scanf("%127[^\n]", to_write)
 
 static void parse_position_command(){}
 static void parse_go_command(){}
@@ -17,11 +13,12 @@ static void parse_go_command(){}
 void uci_loop(){
     printf("running\n");
     int c;
+    
     while (1) {
         while ((c = getchar()) != '\n' && c != EOF){
-            READ_INPUT();
+            READ_INPUT(command);
             command[0] = c;
-            printf("[READ] %s\n", command);
+            // printf("[READ] %s\n", command);
 
             switch (c) {
                 case 'u':
@@ -39,6 +36,8 @@ void uci_loop(){
                     }
                     break;
                 case 'p':
+
+                    break;
                     
                 default:
                     printf("Error! Couldn't parse the command. Exiting...\n");

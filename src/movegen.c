@@ -84,7 +84,10 @@ static INLINE void _generate_all(const S_Position* const Pos, S_Moves* Moves, co
         while(attack_bb){
             to_square = GET_LEAST_SIGNIFICANT_BIT_INDEX(attack_bb);
             CLEAR_LEAST_SIGNIFICANT_BIT(attack_bb);
-            if (Pos->Board->pieceSet[to_square] != NO_PIECE){
+            if (
+                Pos->Board->colorBB[BOTH] & (1ULL << to_square)
+                // Pos->Board->pieceSet[to_square] != NO_PIECE
+                ){
                 Moves->moves[Moves->count++] = encode_move(from_square, to_square, CAPTURE);
             }else{
                 Moves->moves[Moves->count++] = encode_move(from_square, to_square, QUIET);
@@ -115,12 +118,10 @@ static inline void generate_pawns(const S_Position* const Pos, S_Moves* Moves, c
     #define NOT_ON_H_FILE (9187201950435737471ULL)
 
     const u64 doublePushRank = color == WHITE ? RANK_7 : RANK_2;
-    // const u64 promotionRank = color == WHITE ? RANK_2 : RANK_7;
     const u64 lastRank = color == WHITE ? RANK_1 : RANK_8;
     const int oneUp = color == WHITE ? -8 : 8; 
     const int upRight = color == WHITE ? -7 : 9;
     const int upLeft = color == WHITE ? -9 : 7;
-    // const u64 doublePushMask = 4311744512ULL;
 
     const u64 empty = ~Pos->Board->colorBB[BOTH];
     const u64 origin_bb = Pos->Board->piecesBB[p] & us();
@@ -293,11 +294,11 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     static const u64 SQUARES_NEEDED_EMPTY__CASTLE_QUEEN = 0xE00000000000000LLU;
     static const u64 REFLECT_SQUARE_OFFSET = 56ULL;
 
-    if ((Pos->Board->piecesBB[k] & us()) == 0ULL){
-        print_board(Pos);
-        print_bitboard(Pos->Board->piecesBB[k]);
-        print_bitboard(Pos->Board->colorBB[Pos->sideToMove]);
-    }
+    // if ((Pos->Board->piecesBB[k] & us()) == 0ULL){
+    //     print_board(Pos);
+    //     print_bitboard(Pos->Board->piecesBB[k]);
+    //     print_bitboard(Pos->Board->colorBB[Pos->sideToMove]);
+    // }
 
     if (Pos->castlePermission && !square_attackers(Pos, GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & us()))){
         if (((Pos->castlePermission & wk) * enemy_color) | ((Pos->castlePermission & bk) * (Pos->sideToMove))){

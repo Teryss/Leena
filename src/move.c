@@ -41,37 +41,16 @@ static INLINE void promote_capture(S_Position* Pos, u8 promotion_piece, u8 to_sq
     promote(Pos, promotion_piece, to_sqr);
 }
 
-static inline void unmove_piece(S_Position* Pos, u8 fromSqr, u8 toSqr, u8 pieceTypeFrom, u8 us, u8 capturePiece){
-    // Update piece set
-    Pos->Board->pieceSet[fromSqr] = Pos->Board->pieceSet[toSqr];
-    Pos->Board->pieceSet[toSqr] = capturePiece;
+// static INLINE int get_piece(S_Board* Board, int square){
+//     for (int i = 0; i < 6; i++){
+//         if (Board->piecesBB[i] & Board->colorBB[BOTH] & (1ULL << square)){
+//             return i;
+//         }
+//     }
+//     return NO_PIECE;
+// }
 
-    // Move the moving piece, update piece and color bb
-    Pos->Board->colorBB[us] ^= sqrs(fromSqr) | sqrs(toSqr);
-    Pos->Board->piecesBB[pieceTypeFrom] ^= sqrs(fromSqr) | sqrs(toSqr);
-}
-
-static inline void undo_promote(S_Position* Pos, u8 piece, u8 promotion_piece, u8 from_sqr, u8 to_sqr, u8 ourColor){
-    /*  At the start of make_move function we move the piece without thinking about promotions/
-        Promotions are rather rare, so we just clear the piece from the piece bb    */
-
-    Pos->Board->piecesBB[p] ^= sqrs(to_sqr);
-    unmove_piece(Pos, from_sqr, to_sqr, p, ourColor, NO_PIECE);
-
-    Pos->Board->pieceSet[to_sqr] = NO_PIECE;
-    Pos->Board->pieceSet[from_sqr] = p;
-    Pos->Board->piecesBB[promotion_piece] ^= sqrs(to_sqr);
-}
-
-static inline void undo_promote_capture(S_Position* Pos, u8 piece, u8 promotion_piece, u8 from_sqr, u8 to_sqr, u8 capturePieceType, u8 enemyColor){
-    undo_promote(Pos, piece, promotion_piece, from_sqr, to_sqr, 1 - enemyColor);
-
-    Pos->Board->piecesBB[capturePieceType] ^= sqrs(to_sqr);
-    Pos->Board->colorBB[enemyColor] ^= sqrs(to_sqr);
-    Pos->Board->pieceSet[to_sqr] = capturePieceType;
-}
-
-u8 make_move(S_Position* Pos, u16 move){
+void make_move(S_Position* Pos, u16 move){
     const u8 fromSqr = MOVE_FROM_SQUARE(move), toSqr = MOVE_TO_SQUARE(move);
     const u8 pieceTypeTo = Pos->Board->pieceSet[toSqr];
 
@@ -252,7 +231,70 @@ u8 make_move(S_Position* Pos, u16 move){
 
     Pos->Board->colorBB[BOTH] = Pos->Board->colorBB[WHITE] | Pos->Board->colorBB[BLACK];
 
-    return pieceTypeTo;
+    // return pieceTypeTo;
+}
+
+static inline const char* decodeMoveFlag(u8 flag){
+    switch (flag){
+        case QUIET:
+            return "Quiet";
+        case DOUBLE_PUSH:
+            return "Double Push";
+        case KING_CASTLE:
+            return "Castling king side";
+        case QUEEN_CASTLE:
+            return "Castling queen side";
+        case PROMOTION_N:
+            return "Promotion Knight";
+        case PROMOTION_B:
+            return "Promotion Bishop";
+        case PROMOTION_R:
+            return "Promotion Rook";
+        case PROMOTION_Q:
+            return "Promotion Queen";
+        case CAPTURE:
+            return "Capture";
+        case EP_CAPTURE:
+            return "En passant capture";
+        case CAPTURE_PROMOTION_N:
+            return "Capture promotion Knight";
+        case CAPTURE_PROMOTION_B:
+            return "Capture promotion Bishop";
+        case CAPTURE_PROMOTION_R:
+            return "Capture promotion Rook";
+        case CAPTURE_PROMOTION_Q:
+            return "Capture promotion Queen";
+        default:
+            return "ERROR";
+    }
+} 
+
+void print_move(S_Board* Board, u16 move){
+    printf("%c     | %s          | %s        | %c             | %s         \n",
+        pieces_int_to_chr[Board->pieceSet[MOVE_FROM_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_FROM_SQUARE(move)) ? 6 : 0)],
+        squares_int_to_chr[MOVE_FROM_SQUARE(move)],
+        squares_int_to_chr[MOVE_TO_SQUARE(move)],
+        pieces_int_to_chr[Board->pieceSet[MOVE_TO_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_TO_SQUARE(move)) ? 6 : 0)],
+        decodeMoveFlag(MOVE_GET_FLAG(move))
+    );
+}
+void print_moves(S_Board* Board, S_Moves* Moves){
+    u16 move;
+    printf("Moves count: %i\n", Moves->count);
+    printf("-----------------------------------------------------------------------------|\n");
+    printf("piece | from_square | to_square | capture_piece | flag \n");
+    printf("-----------------------------------------------------------------------------|\n");
+    for (int i = 0; i < Moves->count; i++){
+        move = Moves->moves[i];
+        printf("%c     | %s          | %s        | %c             | %s         \n",
+            pieces_int_to_chr[Board->pieceSet[MOVE_FROM_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_FROM_SQUARE(move)) ? 6 : 0)],
+            squares_int_to_chr[MOVE_FROM_SQUARE(move)],
+            squares_int_to_chr[MOVE_TO_SQUARE(move)],
+            pieces_int_to_chr[Board->pieceSet[MOVE_TO_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_TO_SQUARE(move)) ? 6 : 0)],
+            decodeMoveFlag(MOVE_GET_FLAG(move))
+        );
+        printf("-----------------------------------------------------------------------------|\n");
+    }
 }
 
 /*  It's not used, unmaking move is a lot slower than copying and pasting the board.
@@ -344,65 +386,33 @@ u8 make_move(S_Position* Pos, u16 move){
 //     Pos->Board->colorBB[BOTH] = Pos->Board->colorBB[WHITE] | Pos->Board->colorBB[BLACK];
 // }
 
-static inline const char* decodeMoveFlag(u8 flag){
-    switch (flag){
-        case QUIET:
-            return "Quiet";
-        case DOUBLE_PUSH:
-            return "Double Push";
-        case KING_CASTLE:
-            return "Castling king side";
-        case QUEEN_CASTLE:
-            return "Castling queen side";
-        case PROMOTION_N:
-            return "Promotion Knight";
-        case PROMOTION_B:
-            return "Promotion Bishop";
-        case PROMOTION_R:
-            return "Promotion Rook";
-        case PROMOTION_Q:
-            return "Promotion Queen";
-        case CAPTURE:
-            return "Capture";
-        case EP_CAPTURE:
-            return "En passant capture";
-        case CAPTURE_PROMOTION_N:
-            return "Capture promotion Knight";
-        case CAPTURE_PROMOTION_B:
-            return "Capture promotion Bishop";
-        case CAPTURE_PROMOTION_R:
-            return "Capture promotion Rook";
-        case CAPTURE_PROMOTION_Q:
-            return "Capture promotion Queen";
-        default:
-            return "ERROR";
-    }
-} 
 
-void print_move(S_Board* Board, u16 move){
-    printf("%c     | %s          | %s        | %c             | %s         \n",
-        pieces_int_to_chr[Board->pieceSet[MOVE_FROM_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_FROM_SQUARE(move)) ? 6 : 0)],
-        squares_int_to_chr[MOVE_FROM_SQUARE(move)],
-        squares_int_to_chr[MOVE_TO_SQUARE(move)],
-        pieces_int_to_chr[Board->pieceSet[MOVE_TO_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_TO_SQUARE(move)) ? 6 : 0)],
-        decodeMoveFlag(MOVE_GET_FLAG(move))
-    );
-}
-void print_moves(S_Board* Board, S_Moves* Moves){
-    u16 move;
-    printf("Moves count: %i\n", Moves->count);
-    printf("-----------------------------------------------------------------------------|\n");
-    printf("piece | from_square | to_square | capture_piece | flag \n");
-    printf("-----------------------------------------------------------------------------|\n");
-    for (int i = 0; i < Moves->count; i++){
-        move = Moves->moves[i];
-        printf("%c     | %s          | %s        | %c             | %s         \n",
-            pieces_int_to_chr[Board->pieceSet[MOVE_FROM_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_FROM_SQUARE(move)) ? 6 : 0)],
-            squares_int_to_chr[MOVE_FROM_SQUARE(move)],
-            squares_int_to_chr[MOVE_TO_SQUARE(move)],
-            pieces_int_to_chr[Board->pieceSet[MOVE_TO_SQUARE(move)] + (Board->colorBB[WHITE] & sqrs(MOVE_TO_SQUARE(move)) ? 6 : 0)],
-            decodeMoveFlag(MOVE_GET_FLAG(move))
-        );
-        printf("-----------------------------------------------------------------------------|\n");
-    }
-}
+// static inline void unmove_piece(S_Position* Pos, u8 fromSqr, u8 toSqr, u8 pieceTypeFrom, u8 us, u8 capturePiece){
+//     // Update piece set
+//     Pos->Board->pieceSet[fromSqr] = Pos->Board->pieceSet[toSqr];
+//     Pos->Board->pieceSet[toSqr] = capturePiece;
+
+//     // Move the moving piece, update piece and color bb
+//     Pos->Board->colorBB[us] ^= sqrs(fromSqr) | sqrs(toSqr);
+//     Pos->Board->piecesBB[pieceTypeFrom] ^= sqrs(fromSqr) | sqrs(toSqr);
+// }
+
+// static inline void undo_promote(S_Position* Pos, u8 piece, u8 promotion_piece, u8 from_sqr, u8 to_sqr, u8 ourColor){
+//     /*  At the start of make_move function we move the piece without thinking about promotions/
+//         Promotions are rather rare, so we just clear the piece from the piece bb    */
+
+//     Pos->Board->piecesBB[p] ^= sqrs(to_sqr);
+//     unmove_piece(Pos, from_sqr, to_sqr, p, ourColor, NO_PIECE);
+
+//     Pos->Board->pieceSet[to_sqr] = NO_PIECE;
+//     Pos->Board->pieceSet[from_sqr] = p;
+//     Pos->Board->piecesBB[promotion_piece] ^= sqrs(to_sqr);
+// }
+
+// static inline void undo_promote_capture(S_Position* Pos, u8 piece, u8 promotion_piece, u8 from_sqr, u8 to_sqr, u8 capturePieceType, u8 enemyColor){
+//     undo_promote(Pos, piece, promotion_piece, from_sqr, to_sqr, 1 - enemyColor);
+
+//     Pos->Board->piecesBB[capturePieceType] ^= sqrs(to_sqr);
+//     Pos->Board->colorBB[enemyColor] ^= sqrs(to_sqr);
+//     Pos->Board->pieceSet[to_sqr] = capturePieceType;
+// }

@@ -35,7 +35,8 @@ exit(1);}
 #define COUNT_BITS(bb) (_popcnt64(bb))
 #define PEXT(src, mask) (_pext_u64(src, mask))
 #define GET_LEAST_SIGNIFICANT_BIT_INDEX(bb) (_tzcnt_u64(bb))
-#define sqrs(sqr) (1ULL << (sqr))
+// #define sqrs(sqr) (1ULL << (sqr))
+#define sqrs(sqr) (sqrs[sqr])
 
 #define ROW_COL_TO_SQR(row, col) (row * 8 + col)
 #define MAX_GAME_SIZE 2048
@@ -132,7 +133,7 @@ typedef struct{
 // main.c
 extern S_Masks Masks;
 void init_all();
-
+extern u64 sqrs[64];
 // bitboards.c
 extern u64 between[64][64];
 extern u64 line[64][64];
@@ -185,7 +186,7 @@ extern void filter_illegal(const S_Position* const Pos, S_Moves* Moves);
 #define GET_FIFTY_MOVES_COUNTER(state) ((state >> 4) & 0b111111)
 #define GET_EN_PASSANT_SQR(state) ((state >> 10) & 0b111111)
 
-extern u8 make_move(S_Position* Pos, u16 move);
+extern void make_move(S_Position* Pos, u16 move);
 extern void undo_move(S_Position* Pos, u16 move, u16 lastState, u8 capturePiece);
 // extern u16 encode_state(S_Position* Pos);
 extern void print_moves(S_Board* Board, S_Moves* Moves);
