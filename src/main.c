@@ -5,6 +5,7 @@
 #include <inttypes.h>
 
 #include "defs.h"
+#include "search.h"
 
 S_Masks Masks;
 
@@ -45,7 +46,6 @@ int main(){
     // clock_t end = clock();
     // printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    getchar();
     time_perft(&Pos, kiwipete, 5);
     // time_search(&Pos, kiwipete, 7);
     // uci_loop();

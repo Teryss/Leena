@@ -318,7 +318,7 @@ void generateMoves(const S_Position* const Pos, S_Moves* Moves){
     }
 }
 
-static inline u64 pins(const S_Position* const Pos, u8 king_square){
+static inline CONST u64 pins(const S_Position* const Pos, u8 king_square){
     u64 xRayAttackers = (
         (((Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & enemy()) & get_rook_attacks(0, king_square)) | 
         (((Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & enemy()) & get_bishop_attacks(0, king_square))
@@ -441,7 +441,7 @@ void filter_illegal(const S_Position* const Pos, S_Moves* Moves){
 It's used during search/perft, when sideToMove has already been changed
 During move generation we use is_square_attacked and specify king's location
 */
-PURE u8 is_king_attacked(const S_Position* const Pos){
+CONST u8 is_king_attacked(const S_Position* const Pos){
     const uint square = GET_LEAST_SIGNIFICANT_BIT_INDEX(Pos->Board->piecesBB[k] & enemy());
     if (get_rook_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[r] | Pos->Board->piecesBB[q]) & us()) return 1;
     if (get_bishop_attacks(Pos->Board->colorBB[BOTH], square) & (Pos->Board->piecesBB[b] | Pos->Board->piecesBB[q]) & us()) return 1;
