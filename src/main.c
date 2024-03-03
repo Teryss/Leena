@@ -46,11 +46,11 @@ int main(){
     // clock_t end = clock();
     // printf("Search took: %f seconds\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    time_perft(&Pos, kiwipete, 5);
+    // time_perft(&Pos, kiwipete, 5);
     // time_search(&Pos, kiwipete, 7);
-    // uci_loop();
+    uci_loop();
 
-    free(TTable.entries);
+    // free(TTable.entries);
 }
 
 void init_all(){

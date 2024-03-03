@@ -19,9 +19,6 @@ It allows a fast incremental update of the hash key during make or unmake moves.
 ... xor [Hash for Black to move] ( change sides)
 */
 
-#define MB 1024
-#define TT_SIZE 100 * MB
-
 S_TTable TTable;
 static int seed = 1804289383;
 

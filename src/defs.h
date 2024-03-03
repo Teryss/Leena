@@ -40,6 +40,8 @@ exit(1);}
 #define ROW_COL_TO_SQR(row, col) (row * 8 + col)
 #define MAX_GAME_SIZE 2048
 #define MAX_SEARCH_DEPTH 64
+#define MB 1024
+#define TT_SIZE 100 * MB
 
 #define STARTING_POSITION_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #define kiwipete "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"

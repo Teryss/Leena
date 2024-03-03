@@ -7,8 +7,7 @@
 #define MAX_DEPTH_QUEIESENCE 4
 #define NO_HASH_ENTRY 999991
 
-
-S_Move search(S_Position* Pos, uint depth);
+S_Move search(S_Position* Pos,uint depth);
 i32 iterative_deepening(S_Position* Pos, uint max_depth);
 
 extern u64 total_nodes_searched;
@@ -67,7 +66,7 @@ static INLINE u8 isReadyToPromote(S_Position* Pos){
 static INLINE void sort_afterSearch(const S_Position* const Pos, S_Moves* Moves){
     u16 temp_move;
 
-    for (int i = 0; i < Moves->count; i++){
+    for (unsigned int i = 0; i < Moves->count; i++){
         if (Moves->moves[i] == Pos->PV.nodes[0][Pos->ply]){
             temp_move = Moves->moves[0];
             Moves->moves[0] = Moves->moves[i];
@@ -75,8 +74,6 @@ static INLINE void sort_afterSearch(const S_Position* const Pos, S_Moves* Moves)
             return;
         }
     }
-            // printf("Ply: %i\n", Pos->ply);
-            // print_move(Pos->Board, Moves->moves[0]);
 }
 
 #endif
